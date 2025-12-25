@@ -26,15 +26,51 @@ $resJadwalHariIni = mysqli_query($conn, "SELECT COUNT(*) as total FROM jadwalkul
 $countJadwal = mysqli_fetch_assoc($resJadwalHariIni)['total'];
 
 // C. Marker Kalender
-$bulanIni = date('m');
-$tahunIni = date('Y');
-$jumlahHari = date('t');
+// Handle month navigation
+if (isset($_GET['cal_month']) && isset($_GET['cal_year'])) {
+    $bulanIni = str_pad($_GET['cal_month'], 2, '0', STR_PAD_LEFT);
+    $tahunIni = $_GET['cal_year'];
+} else {
+    $bulanIni = date('m');
+    $tahunIni = date('Y');
+}
+
+$jumlahHari = date('t', strtotime("$tahunIni-$bulanIni-01"));
 $hariPertama = date('N', strtotime("$tahunIni-$bulanIni-01"));
 
+// Enhanced deadline map with task details
 $deadlinesMap = [];
-$queryKalender = mysqli_query($conn, "SELECT DAY(Deadline) as hari FROM tugas WHERE NIM = '$nim' AND StatusTugas = 'Aktif' AND MONTH(Deadline) = '$bulanIni' AND YEAR(Deadline) = '$tahunIni'");
+$queryKalender = mysqli_query($conn, "SELECT DAY(Deadline) as hari, JudulTugas, StatusTugas, Deadline 
+                                      FROM tugas 
+                                      WHERE NIM = '$nim' 
+                                      AND MONTH(Deadline) = '$bulanIni' 
+                                      AND YEAR(Deadline) = '$tahunIni'
+                                      ORDER BY Deadline ASC");
 while($row = mysqli_fetch_assoc($queryKalender)) {
-    $deadlinesMap[] = $row['hari'];
+    $day = $row['hari'];
+    if (!isset($deadlinesMap[$day])) {
+        $deadlinesMap[$day] = [];
+    }
+    
+    // Determine urgency
+    $deadlineDate = new DateTime($row['Deadline']);
+    $now = new DateTime();
+    $diff = $now->diff($deadlineDate);
+    
+    if ($now > $deadlineDate && $row['StatusTugas'] != 'Selesai') {
+        $urgency = 'overdue'; // Red
+    } elseif ($diff->days <= 3 && $row['StatusTugas'] != 'Selesai') {
+        $urgency = 'urgent'; // Orange
+    } else {
+        $urgency = 'normal'; // Blue
+    }
+    
+    $deadlinesMap[$day][] = [
+        'title' => $row['JudulTugas'],
+        'status' => $row['StatusTugas'],
+        'urgency' => $urgency,
+        'deadline' => $row['Deadline']
+    ];
 }
 
 // D. Query Jadwal Hari Ini (Untuk Overview)
@@ -152,6 +188,98 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
     </style>
 </head>
 <body class="min-h-screen font-sans" style="background: linear-gradient(to bottom, #EEF2FF, #FAF5FF, #FDF2F8);">
+    <!-- Notification Toast -->
+    <?php if (isset($_GET['msg'])): ?>
+    <div id="notification-toast" class="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-xl border-l-4 p-4 max-w-sm animate-slide-in">
+        <?php
+        $msg = $_GET['msg'];
+        $icon = 'fa-check-circle';
+        $color = 'border-green-500';
+        $bg_color = 'bg-green-50';
+        $text_color = 'text-green-800';
+        $message = '';
+        
+        switch($msg) {
+            case 'import_success':
+                $imported = isset($_GET['imported']) ? $_GET['imported'] : 0;
+                $skipped = isset($_GET['skipped']) ? $_GET['skipped'] : 0;
+                $message = "Berhasil mengimpor $imported event dari LMS!";
+                if ($skipped > 0) {
+                    $message .= " ($skipped event dilewati karena sudah ada)";
+                }
+                break;
+            case 'invalid_url':
+                $icon = 'fa-exclamation-circle';
+                $color = 'border-red-500';
+                $bg_color = 'bg-red-50';
+                $text_color = 'text-red-800';
+                $message = 'URL tidak valid. Pastikan URL benar.';
+                break;
+            case 'invalid_ical_format':
+                $icon = 'fa-exclamation-circle';
+                $color = 'border-red-500';
+                $bg_color = 'bg-red-50';
+                $text_color = 'text-red-800';
+                $message = 'Format URL harus berupa file .ics';
+                break;
+            case 'fetch_failed':
+                $icon = 'fa-exclamation-circle';
+                $color = 'border-red-500';
+                $bg_color = 'bg-red-50';
+                $text_color = 'text-red-800';
+                $message = 'Gagal mengambil data dari URL. Periksa koneksi atau URL.';
+                break;
+            case 'no_events':
+                $icon = 'fa-info-circle';
+                $color = 'border-yellow-500';
+                $bg_color = 'bg-yellow-50';
+                $text_color = 'text-yellow-800';
+                $message = 'Tidak ada event ditemukan di kalender.';
+                break;
+        }
+        ?>
+        <div class="flex items-start gap-3 <?= $bg_color ?> p-3 rounded">
+            <i class="fas <?= $icon ?> <?= $text_color ?> text-xl mt-0.5"></i>
+            <div class="flex-1">
+                <p class="<?= $text_color ?> font-medium text-sm"><?= $message ?></p>
+            </div>
+            <button onclick="closeNotification()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <script>
+        setTimeout(() => {
+            const toast = document.getElementById('notification-toast');
+            if (toast) {
+                toast.style.animation = 'slide-out 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 5000);
+        
+        function closeNotification() {
+            const toast = document.getElementById('notification-toast');
+            if (toast) {
+                toast.style.animation = 'slide-out 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }
+    </script>
+    <style>
+        @keyframes slide-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slide-out {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        .animate-slide-in {
+            animation: slide-in 0.3s ease-out;
+        }
+    </style>
+    <?php endif; ?>
+    
     <div class="max-w-md mx-auto min-h-screen shadow-xl">
         <!-- Top Header Bar -->
         <div class="bg-white w-full shadow-md px-4 py-3 flex justify-between items-center">
@@ -203,53 +331,156 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                         Tambah Tugas
                     </button>
                 </div>
+                
+                <!-- LMS Integration Button -->
+                <div class="mb-4">
+                    <button class="w-full py-3 px-4 rounded-full font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-lg shadow-md" onclick="openModal('modalIntegrasLMS')">
+                        <i class="fas fa-sync-alt"></i>
+                        Integrasi LMS Telkom University
+                    </button>
+                </div>
 
-                <div class="bg-white rounded-lg p-4 border border-gray-200">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="font-semibold text-gray-800"><?= $bulanSekarang ?> <?= $tahunIni ?></div>
+                <div class="bg-white rounded-2xl p-5 shadow-lg border border-gray-200">
+                    <!-- Calendar Header -->
+                    <div class="flex justify-between items-center mb-5">
+                        <div class="text-lg font-bold text-gray-800 bg-gradient-to-r from-purple-600 to-fuchsia-600 bg-clip-text text-transparent">
+                            <?= $bulanSekarang ?> <?= $tahunIni ?>
+                        </div>
                         <div class="flex gap-2">
-                            <button class="w-7 h-7 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center">
+                            <?php
+                            $prevMonth = $bulanIni - 1;
+                            $prevYear = $tahunIni;
+                            if ($prevMonth < 1) {
+                                $prevMonth = 12;
+                                $prevYear--;
+                            }
+                            
+                            $nextMonth = $bulanIni + 1;
+                            $nextYear = $tahunIni;
+                            if ($nextMonth > 12) {
+                                $nextMonth = 1;
+                                $nextYear++;
+                            }
+                            ?>
+                            <a href="?cal_month=<?= $prevMonth ?>&cal_year=<?= $prevYear ?>" class="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white hover:shadow-lg transition-all duration-300 flex items-center justify-center">
                                 <i class="fas fa-chevron-left text-xs"></i>
-                            </button>
-                            <button class="w-7 h-7 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center">
+                            </a>
+                            <a href="?cal_month=<?= date('m') ?>&cal_year=<?= date('Y') ?>" class="px-3 h-8 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center text-xs font-medium">
+                                Hari Ini
+                            </a>
+                            <a href="?cal_month=<?= $nextMonth ?>&cal_year=<?= $nextYear ?>" class="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white hover:shadow-lg transition-all duration-300 flex items-center justify-center">
                                 <i class="fas fa-chevron-right text-xs"></i>
-                            </button>
+                            </a>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-7 gap-1">
-                        <div class="text-center text-xs font-medium text-gray-500 py-2">Min</div>
-                        <div class="text-center text-xs font-medium text-gray-500 py-2">Sen</div>
-                        <div class="text-center text-xs font-medium text-gray-500 py-2">Sel</div>
-                        <div class="text-center text-xs font-medium text-gray-500 py-2">Rab</div>
-                        <div class="text-center text-xs font-medium text-gray-500 py-2">Kam</div>
-                        <div class="text-center text-xs font-medium text-gray-500 py-2">Jum</div>
-                        <div class="text-center text-xs font-medium text-gray-500 py-2">Sab</div>
+                    <!-- Calendar Grid -->
+                    <div class="grid grid-cols-7 gap-2">
+                        <!-- Day Headers -->
+                        <div class="text-center text-xs font-bold text-gray-600 py-2">Min</div>
+                        <div class="text-center text-xs font-bold text-gray-600 py-2">Sen</div>
+                        <div class="text-center text-xs font-bold text-gray-600 py-2">Sel</div>
+                        <div class="text-center text-xs font-bold text-gray-600 py-2">Rab</div>
+                        <div class="text-center text-xs font-bold text-gray-600 py-2">Kam</div>
+                        <div class="text-center text-xs font-bold text-gray-600 py-2">Jum</div>
+                        <div class="text-center text-xs font-bold text-gray-600 py-2">Sab</div>
 
                         <?php
                         // Empty cells before first day
                         for ($i = 1; $i < $hariPertama; $i++) {
-                            echo '<div class="aspect-square flex items-center justify-center rounded-md text-sm text-gray-300"></div>';
+                            echo '<div class="aspect-square"></div>';
                         }
 
                         // Days of the month
                         $hariIniAngka = (int)date('d');
+                        $bulanIniCurrent = date('m');
+                        $tahunIniCurrent = date('Y');
+                        $isCurrentMonth = ($bulanIni == $bulanIniCurrent && $tahunIni == $tahunIniCurrent);
+                        
                         for ($day = 1; $day <= $jumlahHari; $day++) {
-                            $classes = 'aspect-square flex items-center justify-center rounded-md text-sm text-gray-700 cursor-pointer transition-all duration-200 hover:bg-gray-100 relative';
+                            $isToday = ($day == $hariIniAngka && $isCurrentMonth);
+                            $dayOfWeek = date('N', strtotime("$tahunIni-$bulanIni-$day"));
+                            $isWeekend = ($dayOfWeek == 6 || $dayOfWeek == 7);
                             
-                            if ($day == $hariIniAngka) {
-                                $classes = 'aspect-square flex items-center justify-center rounded-md text-sm font-semibold cursor-pointer transition-all duration-200 relative bg-purple-600 text-white';
+                            // Base classes
+                            $classes = 'aspect-square flex flex-col items-center justify-center rounded-xl text-sm cursor-pointer transition-all duration-200 relative group';
+                            
+                            if ($isToday) {
+                                $classes .= ' bg-gradient-to-br from-purple-600 to-fuchsia-600 text-white font-bold shadow-lg';
+                            } elseif ($isWeekend) {
+                                $classes .= ' text-gray-400 hover:bg-gray-50';
+                            } else {
+                                $classes .= ' text-gray-700 hover:bg-purple-50 hover:shadow-md';
                             }
                             
-                            $hasDeadline = in_array($day, $deadlinesMap);
-                            echo '<div class="' . $classes . '">';
-                            echo $day;
-                            if ($hasDeadline) {
-                                echo '<span class="absolute bottom-0.5 w-1 h-1 rounded-full bg-red-500"></span>';
+                            $hasDeadlines = isset($deadlinesMap[$day]);
+                            $taskCount = $hasDeadlines ? count($deadlinesMap[$day]) : 0;
+                            
+                            echo '<div class="' . $classes . '" data-date="' . $day . '" data-month="' . $bulanIni . '" data-year="' . $tahunIni . '">';
+                            echo '<span class="' . ($isToday ? 'text-white' : '') . '">' . $day . '</span>';
+                            
+                            // Deadline markers
+                            if ($hasDeadlines) {
+                                echo '<div class="flex gap-0.5 mt-1 absolute bottom-1">';
+                                
+                                // Show up to 3 dots
+                                $maxDots = min(3, $taskCount);
+                                $urgencyColors = [];
+                                
+                                foreach ($deadlinesMap[$day] as $task) {
+                                    $urgencyColors[] = $task['urgency'];
+                                }
+                                
+                                // Sort by urgency priority
+                                usort($urgencyColors, function($a, $b) {
+                                    $priority = ['overdue' => 0, 'urgent' => 1, 'normal' => 2];
+                                    return $priority[$a] - $priority[$b];
+                                });
+                                
+                                for ($i = 0; $i < $maxDots; $i++) {
+                                    $urgency = $urgencyColors[$i];
+                                    $color = $urgency == 'overdue' ? 'bg-red-500' : ($urgency == 'urgent' ? 'bg-orange-500' : 'bg-blue-500');
+                                    echo '<span class="w-1.5 h-1.5 rounded-full ' . $color . '"></span>';
+                                }
+                                
+                                if ($taskCount > 3) {
+                                    echo '<span class="text-[8px] ml-0.5 font-bold ' . ($isToday ? 'text-white' : 'text-gray-600') . '">+</span>';
+                                }
+                                
+                                echo '</div>';
+                                
+                                // Tooltip on hover
+                                echo '<div class="hidden group-hover:block absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 z-20 whitespace-nowrap shadow-xl">';
+                                echo '<div class="font-semibold mb-1">' . $taskCount . ' Tugas</div>';
+                                foreach (array_slice($deadlinesMap[$day], 0, 3) as $task) {
+                                    $icon = $task['urgency'] == 'overdue' ? '🔴' : ($task['urgency'] == 'urgent' ? '🟡' : '🔵');
+                                    echo '<div class="text-[10px]">' . $icon . ' ' . htmlspecialchars(substr($task['title'], 0, 20)) . '</div>';
+                                }
+                                if ($taskCount > 3) {
+                                    echo '<div class="text-[10px] text-gray-400 mt-1">+' . ($taskCount - 3) . ' lainnya</div>';
+                                }
+                                echo '</div>';
                             }
+                            
                             echo '</div>';
                         }
                         ?>
+                    </div>
+                    
+                    <!-- Legend -->
+                    <div class="mt-5 pt-4 border-t border-gray-200 flex flex-wrap gap-3 text-xs">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                            <span class="text-gray-600">Terlewat</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                            <span class="text-gray-600">Mendesak</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span class="text-gray-600">Normal</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -502,6 +733,72 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                     <button type="submit" class="flex-1 py-2.5 px-4 bg-purple-600 text-white rounded-lg font-medium text-sm hover:bg-purple-700 transition-all duration-300">Buat Grup</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal Integrasi LMS -->
+    <div id="modalIntegrasLMS" class="modal hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-5">
+        <div class="modal-content bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-5">
+                <div class="text-lg font-bold text-gray-800">Integrasi LMS Telkom University</div>
+                <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" onclick="closeModal('modalIntegrasLMS')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5">
+                <div class="flex items-start gap-2 mb-3">
+                    <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                    <div class="text-sm text-blue-900 font-semibold">Cara mendapatkan URL Kalender LMS:</div>
+                </div>
+                <ol class="text-xs text-blue-800 space-y-2 ml-6 list-decimal">
+                    <li>Login ke LMS Telkom University (iGracias)</li>
+                    <li>Buka halaman "Kain Kalender" atau "Calendar"</li>
+                    <li>Cari opsi "Export Calendar" atau "Ekspor Kalender"</li>
+                    <li>Pilih format iCal atau .ics</li>
+                    <li>Copy URL yang diberikan (biasanya berformat .ics)</li>
+                    <li>Paste URL tersebut di form di bawah</li>
+                </ol>
+            </div>
+            
+            <form action="proses_import_ical.php" method="POST" id="formIntegrasLMS">
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        URL Kalender iCal <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-link text-gray-400 text-sm"></i>
+                        </div>
+                        <input type="url" name="ical_url" id="ical_url" class="w-full py-2.5 pl-10 pr-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300" placeholder="https://lms.telkomuniversity.ac.id/calendar/export_execute.php?..." required>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">URL harus berformat .ics dan iCal dari LMS Telkom University</p>
+                </div>
+                
+                <!-- Example URL -->
+                <div class="mb-5">
+                    <label class="block font-medium text-gray-700 mb-2 text-xs">Contoh URL:</label>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <code class="text-xs text-gray-600 break-all">
+                            https://lms.telkomuniversity.ac.id/calendar/export_execute.php?userid=XXXXX&authtoken=XXXXXX&preset_what=all&preset_time=weeknow
+                        </code>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button type="button" class="flex-1 py-2.5 px-4 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition-all duration-300" onclick="closeModal('modalIntegrasLMS')">Batal</button>
+                    <button type="submit" class="flex-1 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-medium text-sm hover:shadow-lg transition-all duration-300">
+                        <i class="fas fa-sync-alt mr-2"></i>Simpan URL
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Loading indicator -->
+            <div id="loadingIntegrasi" class="hidden mt-4 text-center">
+                <i class="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
+                <p class="text-sm text-gray-600 mt-2">Mengimpor kalender...</p>
+            </div>
         </div>
     </div>
 
