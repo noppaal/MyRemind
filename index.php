@@ -107,287 +107,467 @@ $queryListJadwal = "SELECT j.*, m.NamaMK, d.NamaDosen
                     WHERE j.NIM = '$nim' 
                     ORDER BY FIELD(j.Hari, 'Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'), j.JamMulai ASC";
 $resultJadwal = mysqli_query($conn, $queryListJadwal);
-?>
 
+// Nama bulan Indonesia
+$namaBulan = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+$bulanSekarang = $namaBulan[(int)$bulanIni];
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <title>Dashboard - MyRemind</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyRemind - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        :root { --primary: #6f42c1; --secondary: #0d6efd; }
-        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
-        .navbar-brand { font-weight: bold; color: var(--primary) !important; }
-        
-        /* Cards & UI */
-        .stat-card { border: none; border-radius: 12px; border-left: 5px solid; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: transform 0.2s; }
-        .stat-card:hover { transform: translateY(-5px); }
-        .card-blue { border-left-color: var(--secondary); }
-        .card-red { border-left-color: #dc3545; }
-        .card-green { border-left-color: #198754; }
-        .list-card { background: white; border: 1px solid #e9ecef; border-radius: 10px; padding: 20px; margin-bottom: 15px; transition: all 0.2s; cursor: pointer; }
-        .list-card:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-color: var(--primary); transform: translateX(2px); }
-        .accent-bar { width: 4px; height: 40px; background-color: var(--secondary); border-radius: 2px; margin-right: 15px; }
-        
-        /* Tabs */
-        .nav-pills .nav-link { color: #6c757d; border-radius: 20px; padding: 8px 20px; font-weight: 600; }
-        .nav-pills .nav-link.active { background-color: #e9ecef; color: #000; }
-        
-        /* Filter Tabs (Sub-tabs) */
-        .nav-filter .nav-link { border-radius: 20px; padding: 6px 18px; font-size: 0.85rem; font-weight: 600; margin-right: 5px; background-color: #fff; border: 1px solid #e9ecef; color: #6c757d; }
-        .nav-filter .nav-link.active { background-color: var(--primary); color: white; border-color: var(--primary); }
-
-        /* Calendar */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; font-size: 0.9rem; }
-        .calendar-day-head { font-weight: bold; color: #666; font-size: 0.8rem; margin-bottom: 5px; }
-        .calendar-date { padding: 5px; border-radius: 10px; width: 100%; min-height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: default; }
-        .calendar-date.today { background-color: var(--primary); color: white; font-weight: bold; }
-        .calendar-dot { height: 6px; width: 6px; background-color: #dc3545; border-radius: 50%; display: block; margin-top: 2px; }
-        .calendar-date.today .calendar-dot { background-color: white; }
-        .calendar-date.empty { background: transparent; }
-        
-        /* Forms & Badges */
-        .form-control, .form-select { background-color: #f8f9fa; border: 1px solid #dee2e6; }
-        .badge-overdue { background-color: #212529; color: #fff; }
-        .task-done h6 { text-decoration: line-through; color: #adb5bd; }
-        
-        /* Scrollable Widget */
-        .task-scroll-box { max-height: 320px; overflow-y: auto; padding-right: 5px; }
-        .task-scroll-box::-webkit-scrollbar { width: 6px; }
-        .task-scroll-box::-webkit-scrollbar-track { background: #f1f1f1; }
-        .task-scroll-box::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
-        
-        /* Widget Tabs */
-        .nav-tabs-deadline { border-bottom: none; }
-        .nav-tabs-deadline .nav-link { border: none; color: #6c757d; font-size: 0.9rem; font-weight: 600; padding: 5px 15px; }
-        .nav-tabs-deadline .nav-link.active { color: var(--primary); border-bottom: 2px solid var(--primary); background: transparent; }
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .modal.active {
+            display: flex !important;
+        }
+        .modal-content {
+            animation: modalSlideIn 0.3s ease;
+        }
     </style>
 </head>
-<body>
-
-    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom px-4 py-3">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#"><i class="fa-solid fa-graduation-cap me-2"></i>MyRemind</a>
-            <div class="d-flex align-items-center gap-3">
-                <span class="text-muted small d-none d-md-block">Halo, <b><?= htmlspecialchars($_SESSION['nama']) ?></b></span>
-                <a href="logout.php" class="btn btn-outline-danger btn-sm ms-2 rounded-pill">Logout</a>
+<body class="min-h-screen font-sans" style="background: linear-gradient(to bottom, #EEF2FF, #FAF5FF, #FDF2F8);">
+    <div class="max-w-md mx-auto min-h-screen shadow-xl">
+        <!-- Top Header Bar -->
+        <div class="bg-white w-full shadow-md px-4 py-3 flex justify-between items-center">
+            <div class="text-xl font-bold text-gray-800">MyRemind</div>
+            <div class="flex gap-2">        
+                <button class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" title="Mode Gelap">
+                    <i class="fas fa-moon text-sm"></i>
+                </button>
+                <button class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" title="Pengaturan">
+                    <i class="fas fa-cog text-sm"></i>
+                </button>
+                <button class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" title="Logout" onclick="window.location.href='logout.php'">
+                    <i class="fas fa-sign-out-alt text-sm"></i>
+                </button>
             </div>
         </div>
-    </nav>
-
-    <div class="container mt-4">
         
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card stat-card card-blue p-3 h-100">
-                    <div class="d-flex justify-content-between">
-                        <div><small class="text-muted">Jadwal Hari Ini</small><h3 class="fw-bold mt-2 text-primary"><?= $countJadwal ?> Kelas</h3></div>
-                        <i class="fa-regular fa-calendar text-primary opacity-50 fs-2"></i>
+      
+        <!-- Navigation Tabs -->
+        <div class="mx-4 mt-4">
+            <div class="bg-white rounded-3xl shadow-lg p-2  ">
+            <div class="flex gap-3">
+                <button class="nav-tab flex-1 py-3 px-5 rounded-full font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 text-white shadow-md" style="background: linear-gradient(to right, #4F39F6, #9810FA);" data-tab="kalender">
+                    <i class="far fa-calendar"></i>
+                    Kalender
+                </button>
+                <button class="nav-tab flex-1 py-3 px-5 rounded-full font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50" data-tab="tugas">
+                    <i class="fas fa-check-square"></i>
+                    Tugas
+                </button>
+                <button class="nav-tab flex-1 py-3 px-5 rounded-full font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50" data-tab="grup">
+                    <i class="fas fa-users"></i>
+                    Grup
+                </button>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="p-4">
+            <!-- Kalender Tab -->
+            <div id="tab-kalender" class="tab-content">
+                <div class="flex gap-2 mb-4">
+                    <button class="flex-1 py-3 px-4 rounded-full font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 text-white hover:shadow-lg shadow-md whitespace-nowrap" style="background: linear-gradient(to right, #4F39F6, #9810FA);" onclick="openModal('modalJadwal')">
+                        <i class="fas fa-plus"></i>
+                        Tambah Jadwal
+                    </button>
+                    <button class="flex-1 py-3 px-4 rounded-full font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white hover:shadow-lg shadow-md whitespace-nowrap" onclick="openModal('modalTugas')">
+                        <i class="fas fa-plus"></i>
+                        Tambah Tugas
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="font-semibold text-gray-800"><?= $bulanSekarang ?> <?= $tahunIni ?></div>
+                        <div class="flex gap-2">
+                            <button class="w-7 h-7 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center">
+                                <i class="fas fa-chevron-left text-xs"></i>
+                            </button>
+                            <button class="w-7 h-7 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center">
+                                <i class="fas fa-chevron-right text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-7 gap-1">
+                        <div class="text-center text-xs font-medium text-gray-500 py-2">Min</div>
+                        <div class="text-center text-xs font-medium text-gray-500 py-2">Sen</div>
+                        <div class="text-center text-xs font-medium text-gray-500 py-2">Sel</div>
+                        <div class="text-center text-xs font-medium text-gray-500 py-2">Rab</div>
+                        <div class="text-center text-xs font-medium text-gray-500 py-2">Kam</div>
+                        <div class="text-center text-xs font-medium text-gray-500 py-2">Jum</div>
+                        <div class="text-center text-xs font-medium text-gray-500 py-2">Sab</div>
+
+                        <?php
+                        // Empty cells before first day
+                        for ($i = 1; $i < $hariPertama; $i++) {
+                            echo '<div class="aspect-square flex items-center justify-center rounded-md text-sm text-gray-300"></div>';
+                        }
+
+                        // Days of the month
+                        $hariIniAngka = (int)date('d');
+                        for ($day = 1; $day <= $jumlahHari; $day++) {
+                            $classes = 'aspect-square flex items-center justify-center rounded-md text-sm text-gray-700 cursor-pointer transition-all duration-200 hover:bg-gray-100 relative';
+                            
+                            if ($day == $hariIniAngka) {
+                                $classes = 'aspect-square flex items-center justify-center rounded-md text-sm font-semibold cursor-pointer transition-all duration-200 relative bg-purple-600 text-white';
+                            }
+                            
+                            $hasDeadline = in_array($day, $deadlinesMap);
+                            echo '<div class="' . $classes . '">';
+                            echo $day;
+                            if ($hasDeadline) {
+                                echo '<span class="absolute bottom-0.5 w-1 h-1 rounded-full bg-red-500"></span>';
+                            }
+                            echo '</div>';
+                        }
+                        ?>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card stat-card card-red p-3 h-100">
-                    <div class="d-flex justify-content-between">
-                        <div><small class="text-muted">Tugas Mendesak</small><h3 class="fw-bold mt-2 text-danger"><?= count($tugasMendesak) ?> Tugas</h3></div>
-                        <i class="fa-solid fa-circle-exclamation text-danger opacity-50 fs-2"></i>
+
+            <!-- Tugas Tab -->
+            <div id="tab-tugas" class="tab-content hidden">
+                <div class="mb-4">
+                    <button class="w-full py-3 px-5 rounded-full font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white hover:shadow-lg shadow-md" onclick="openModal('modalTugas')">
+                        <i class="fas fa-plus"></i>
+                        Tambah Tugas Baru
+                    </button>
+                </div>
+
+                <!-- To Do Section -->
+                <?php 
+                $todoTasks = array_filter($tugasSemua, function($t) {
+                    return $t['StatusTugas'] == 'Aktif';
+                });
+                $todoCount = count($todoTasks);
+                ?>
+                <?php if ($todoCount > 0): ?>
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-lg font-semibold text-gray-800">To Do</h3>
+                            <span class="bg-gray-200 text-gray-700 text-sm font-medium px-3 py-1 rounded-full"><?= $todoCount ?></span>
+                        </div>
+                        <div class="flex flex-col gap-3">
+                            <?php foreach ($todoTasks as $t): ?>
+                                <?php include 'item_tugas.php'; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- In Progress Section -->
+                <?php 
+                // For now, we'll use this as a placeholder - you can add logic to track "in progress" status
+                $inProgressTasks = [];
+                $inProgressCount = count($inProgressTasks);
+                ?>
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-semibold text-gray-800">In Progress</h3>
+                        <span class="bg-blue-100 text-blue-700 text-sm font-medium px-3 py-1 rounded-full"><?= $inProgressCount ?></span>
+                    </div>
+                    <?php if ($inProgressCount == 0): ?>
+                        <div class="text-center py-8 text-gray-400 text-sm">Tidak ada tugas dalam progress</div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Done Section -->
+                <?php 
+                $doneCount = count($tugasSelesaiList);
+                ?>
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-semibold text-gray-800">Done</h3>
+                        <span class="bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full"><?= $doneCount ?></span>
+                    </div>
+                    <?php if ($doneCount > 0): ?>
+                        <div class="flex flex-col gap-3">
+                            <?php foreach ($tugasSelesaiList as $t): ?>
+                                <?php include 'item_tugas.php'; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-8 text-gray-400 text-sm">Belum ada tugas selesai</div>
+                    <?php endif; ?>
+                </div>
+
+                <?php if (count($tugasSemua) == 0 && $doneCount == 0): ?>
+                    <div class="text-center py-16">
+                        <div class="text-6xl text-gray-300 mb-4">
+                            <i class="far fa-check-circle"></i>
+                        </div>
+                        <div class="text-sm text-gray-400 font-medium">Belum ada tugas</div>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Grup Tab -->
+            <div id="tab-grup" class="tab-content hidden">
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <div class="text-sm font-semibold text-gray-800">Grup</div>
+                            <div class="text-xs text-gray-400 mt-0.5">Kolaborasi dengan teman satu kelas</div>
+                        </div>
+                        <button class="py-2 px-4 rounded-lg font-medium text-sm transition-all duration-300 bg-purple-600 text-white hover:bg-purple-700" onclick="openModal('modalGrup')">
+                            Buat Grup
+                        </button>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card stat-card card-green p-3 h-100">
-                    <div class="d-flex justify-content-between">
-                        <div><small class="text-muted">Tugas Selesai</small><h3 class="fw-bold mt-2 text-success"><?= $countSelesai ?> / <?= $countTotal ?></h3></div>
-                        <i class="fa-solid fa-book-open text-success opacity-50 fs-2"></i>
+
+                <!-- Example Group -->
+                <div class="flex flex-col gap-3">
+                    <div class="bg-white rounded-lg p-3 flex items-center gap-3 border border-gray-200 transition-all duration-300 hover:shadow-md">
+                        <div class="w-12 h-12 rounded-lg bg-purple-600 flex items-center justify-center text-white text-lg">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-800 text-sm mb-0.5">Testing</div>
+                            <div class="text-xs text-gray-400">
+                                <i class="fas fa-user"></i> 2 anggota
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-pill p-1 mb-4 shadow-sm d-flex justify-content-between" style="max-width: 800px; margin: 0 auto;">
-            <ul class="nav nav-pills nav-fill w-100" id="pills-tab" role="tablist">
-                <li class="nav-item"><button class="nav-link active" id="pills-overview-tab" data-bs-toggle="pill" data-bs-target="#pills-overview" type="button">Overview</button></li>
-                <li class="nav-item"><button class="nav-link" id="pills-jadwal-tab" data-bs-toggle="pill" data-bs-target="#pills-jadwal" type="button">Jadwal Kuliah</button></li>
-                <li class="nav-item"><button class="nav-link" id="pills-tugas-tab" data-bs-toggle="pill" data-bs-target="#pills-tugas" type="button">Tugas & Deadline</button></li>
-            </ul>
         </div>
+        <!-- Navigation Tabs -->
+        
+    </div>
 
-        <div class="tab-content" id="pills-tabContent">
-            
-            <div class="tab-pane fade show active" id="pills-overview">
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <h5 class="card-title fw-bold">Kalender Akademik</h5>
-                                <div class="p-3 bg-light rounded mt-3">
-                                    <h6 class="fw-bold text-center mb-3"><?= date('F Y') ?></h6>
-                                    <div class="calendar-grid mb-2"><div class="calendar-day-head">Sen</div><div class="calendar-day-head">Sel</div><div class="calendar-day-head">Rab</div><div class="calendar-day-head">Kam</div><div class="calendar-day-head">Jum</div><div class="calendar-day-head">Sab</div><div class="calendar-day-head text-danger">Min</div></div>
-                                    <div class="calendar-grid">
-                                        <?php 
-                                        for($i=1; $i < $hariPertama; $i++) echo '<div class="calendar-date empty"></div>';
-                                        for($d=1; $d <= $jumlahHari; $d++) {
-                                            $cls = ($d == date('d')) ? 'today' : '';
-                                            $marker = in_array($d, $deadlinesMap) ? '<span class="calendar-dot"></span>' : '';
-                                            echo "<div class='calendar-date $cls'><span>$d</span>$marker</div>";
-                                        } ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 mb-4">
-                         <div class="card border-0 shadow-sm h-100">
-                            <div class="card-header bg-white border-0 pt-4 pb-0 px-4">
-                                <div class="d-flex justify-content-between align-items-center mb-2"><h5 class="card-title fw-bold mb-0">Deadline Tugas</h5></div>
-                                <ul class="nav nav-tabs nav-tabs-deadline" id="deadlineTab" role="tablist">
-                                    <li class="nav-item"><button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming-content" type="button">Akan Datang (<?= count($tugasUpcomingWidget) ?>)</button></li>
-                                    <li class="nav-item"><button class="nav-link" id="overdue-tab" data-bs-toggle="tab" data-bs-target="#overdue-content" type="button">Terlewat (<?= count($tugasOverdueWidget) ?>)</button></li>
-                                </ul>
-                            </div>
-                            <div class="card-body pt-2">
-                                <div class="tab-content">
-                                    <div class="tab-pane fade show active" id="upcoming-content">
-                                        <div class="task-scroll-box">
-                                            <?php if(count($tugasUpcomingWidget) > 0): foreach($tugasUpcomingWidget as $t): ?>
-                                            <div class="border rounded p-3 mb-2 bg-white btn-view-detail" 
-                                                 data-judul="<?= htmlspecialchars($t['JudulTugas']) ?>" 
-                                                 data-mk="<?= htmlspecialchars($t['NamaMK']) ?>" 
-                                                 data-deadline="<?= date('d M Y, H:i', strtotime($t['Deadline'])) ?>" 
-                                                 data-desc="<?= htmlspecialchars($t['Deskripsi'] ?? '-') ?>" 
-                                                 data-status="Akan Datang">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div><h6 class="mb-1 fw-bold"><?= htmlspecialchars($t['JudulTugas']) ?></h6><small class="text-muted"><?= $t['NamaMK'] ?></small></div>
-                                                    <span class="badge bg-primary rounded-pill">H-<?= (new DateTime())->diff(new DateTime($t['Deadline']))->days ?></span>
-                                                </div>
-                                                <div class="mt-2 small text-muted"><i class="fa-regular fa-clock me-1"></i> <?= date('d M Y, H:i', strtotime($t['Deadline'])) ?></div>
-                                            </div>
-                                            <?php endforeach; else: ?><div class="text-center py-5 text-muted small">Tidak ada tugas.</div><?php endif; ?>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane fade" id="overdue-content">
-                                        <div class="task-scroll-box">
-                                            <?php if(count($tugasOverdueWidget) > 0): foreach($tugasOverdueWidget as $t): ?>
-                                            <div class="border rounded p-3 mb-2 bg-light border-danger btn-view-detail" 
-                                                 data-judul="<?= htmlspecialchars($t['JudulTugas']) ?>" 
-                                                 data-mk="<?= htmlspecialchars($t['NamaMK']) ?>" 
-                                                 data-deadline="<?= date('d M Y, H:i', strtotime($t['Deadline'])) ?>" 
-                                                 data-desc="<?= htmlspecialchars($t['Deskripsi'] ?? '-') ?>" 
-                                                 data-status="Terlewat">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div><h6 class="mb-1 fw-bold text-danger"><?= htmlspecialchars($t['JudulTugas']) ?></h6><small class="text-muted"><?= $t['NamaMK'] ?></small></div>
-                                                    <span class="badge badge-overdue">Terlewat</span>
-                                                </div>
-                                                <div class="mt-2 small text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> Deadline: <?= date('d M Y, H:i', strtotime($t['Deadline'])) ?></div>
-                                            </div>
-                                            <?php endforeach; else: ?><div class="text-center py-5 text-muted small">Tidak ada tugas terlewat.</div><?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3"><div><h5 class="card-title fw-bold mb-0">Jadwal Kuliah Hari Ini</h5><p class="text-muted small mb-0"><?= $hariIni ?>, <?= date('d F Y') ?></p></div><span class="badge bg-primary rounded-pill px-3"><?= mysqli_num_rows($resultJadwalToday) ?> Kelas</span></div>
-                        <?php if(mysqli_num_rows($resultJadwalToday) > 0): ?>
-                            <div class="row g-3"><?php while($jt = mysqli_fetch_assoc($resultJadwalToday)): ?><div class="col-md-6"><div class="p-3 border rounded bg-light h-100"><div class="d-flex align-items-center mb-2"><span class="badge bg-primary me-2"><?= substr($jt['JamMulai'], 0, 5) ?></span><h6 class="fw-bold mb-0"><?= $jt['NamaMK'] ?></h6></div><div class="text-muted small ps-1"><div><i class="fa-solid fa-chalkboard-user me-2"></i> <?= $jt['Kelas'] ?> (<?= $jt['Ruangan'] ?>)</div><div><i class="fa-regular fa-user me-2"></i> <?= $jt['NamaDosen'] ?? '-' ?></div></div></div></div><?php endwhile; ?></div>
-                        <?php else: ?><div class="text-center p-4 bg-light rounded text-muted">Tidak ada jadwal kuliah hari ini.</div><?php endif; ?>
-                    </div>
-                </div>
-                
-                <div class="card bg-light border-primary border-opacity-25 mb-5">
-                    <div class="card-body d-flex align-items-center gap-3"><div class="bg-primary text-white rounded p-3"><i class="fa-solid fa-graduation-cap fs-4"></i></div><div class="flex-grow-1"><h6 class="fw-bold text-primary mb-1">Integrasi LMS Telkom University</h6><p class="small text-muted mb-2">Hubungkan dengan iGracias/CeLOE untuk impor otomatis.</p><form action="lms_sync.php" method="POST" class="d-flex gap-2"><input type="url" name="lms_url" class="form-control form-control-sm" placeholder="Tempel URL Calendar Export (.ics)..." required><button type="submit" name="sync_lms" class="btn btn-primary btn-sm text-nowrap">Hubungkan</button></form></div></div>
-                </div>
+    <!-- Modal Tambah Jadwal -->
+    <div id="modalJadwal" class="modal hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-5">
+        <div class="modal-content bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-5">
+                <div class="text-lg font-bold text-gray-800">Tambah Jadwal</div>
+                <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" onclick="closeModal('modalJadwal')">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-
-            <div class="tab-pane fade" id="pills-jadwal">
-                 <div class="d-flex justify-content-between align-items-center mb-4"><div><h5 class="fw-bold mb-0">Jadwal Kuliah</h5></div><button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalJadwal"><i class="fa-solid fa-plus me-2"></i>Tambah</button></div>
-                 <?php while($jadwal = mysqli_fetch_assoc($resultJadwal)): ?>
-                    <div class="list-card d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center"><div class="accent-bar bg-primary"></div><div><h6 class="fw-bold mb-1"><?= $jadwal['NamaMK'] ?></h6><small class="text-muted"><?= $jadwal['Kelas'] ?> • <?= $jadwal['Hari'] ?>, <?= substr($jadwal['JamMulai'],0,5) ?></small></div></div>
-                        <div class="d-flex gap-2">
-                             <div class="small text-muted me-3 align-self-center"><i class="fa-solid fa-location-dot me-2"></i><?= $jadwal['Ruangan'] ?></div>
-                             <button class="btn btn-sm btn-light text-primary btn-edit-jadwal" data-id="<?= $jadwal['KodeJadwal'] ?>" data-mk="<?= htmlspecialchars($jadwal['NamaMK']) ?>" data-kelas="<?= $jadwal['Kelas'] ?>" data-hari="<?= $jadwal['Hari'] ?>" data-waktu="<?= substr($jadwal['JamMulai'],0,5).'-'.substr($jadwal['JamSelesai'],0,5) ?>" data-ruangan="<?= $jadwal['Ruangan'] ?>"><i class="fa-solid fa-pen"></i></button>
-                             <a href="hapus.php?id=<?= $jadwal['KodeJadwal'] ?>&type=jadwal" class="btn btn-sm btn-light text-danger border-0" onclick="return confirm('Yakin hapus jadwal ini?')"><i class="fa-solid fa-trash"></i></a>
-                        </div>
-                    </div>
-                 <?php endwhile; ?>
-            </div>
-            
-            <div class="tab-pane fade" id="pills-tugas">
-                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div><h5 class="fw-bold mb-0">Daftar Tugas</h5><p class="text-muted small mb-0">Kelola semua tugas Anda</p></div>
-                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTugas"><i class="fa-solid fa-plus me-2"></i>Tambah</button>
-                 </div>
-
-                 <ul class="nav nav-pills nav-filter mb-4" id="filterTab" role="tablist">
-                    <li class="nav-item"><button class="nav-link active" id="tab-semua" data-bs-toggle="pill" data-bs-target="#content-semua">Semua (<?= count($tugasSemua) ?>)</button></li>
-                    <li class="nav-item"><button class="nav-link" id="tab-mendesak" data-bs-toggle="pill" data-bs-target="#content-mendesak">Mendesak (<?= count($tugasMendesak) ?>)</button></li>
-                    <li class="nav-item"><button class="nav-link" id="tab-terlewat" data-bs-toggle="pill" data-bs-target="#content-terlewat">Terlewat (<?= count($tugasTerlewat) ?>)</button></li>
-                    <li class="nav-item"><button class="nav-link" id="tab-selesai" data-bs-toggle="pill" data-bs-target="#content-selesai">Selesai (<?= count($tugasSelesaiList) ?>)</button></li>
-                 </ul>
-
-                 <div class="tab-content" id="filterTabContent">
-                    <div class="tab-pane fade show active" id="content-semua">
-                        <?php if(count($tugasSemua) > 0): foreach($tugasSemua as $t): include 'item_tugas.php'; endforeach; else: echo '<div class="text-center p-5 text-muted bg-light rounded">Tidak ada tugas aktif.</div>'; endif; ?>
-                    </div>
-                    <div class="tab-pane fade" id="content-mendesak">
-                         <?php if(count($tugasMendesak) > 0): foreach($tugasMendesak as $t): include 'item_tugas.php'; endforeach; else: echo '<div class="text-center p-5 text-muted bg-light rounded">Tidak ada tugas mendesak.</div>'; endif; ?>
-                    </div>
-                    <div class="tab-pane fade" id="content-terlewat">
-                         <?php if(count($tugasTerlewat) > 0): foreach($tugasTerlewat as $t): include 'item_tugas.php'; endforeach; else: echo '<div class="text-center p-5 text-muted bg-light rounded">Hore! Tidak ada tugas terlewat.</div>'; endif; ?>
-                    </div>
-                    <div class="tab-pane fade" id="content-selesai">
-                         <?php if(count($tugasSelesaiList) > 0): foreach($tugasSelesaiList as $t): include 'item_tugas.php'; endforeach; else: echo '<div class="text-center p-5 text-muted bg-light rounded">Belum ada tugas selesai.</div>'; endif; ?>
-                    </div>
-                 </div>
-            </div>
+            <form action="proses_tambah.php" method="POST">
+                <input type="hidden" name="type" value="jadwal">
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        Mata Kuliah <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="matakuliah" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" placeholder="Contoh: Pemrograman Web" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        Hari <span class="text-red-500">*</span>
+                    </label>
+                    <select name="hari" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" required>
+                        <option value="">Pilih Hari</option>
+                        <option value="Senin">Senin</option>
+                        <option value="Selasa">Selasa</option>
+                        <option value="Rabu">Rabu</option>
+                        <option value="Kamis">Kamis</option>
+                        <option value="Jumat">Jumat</option>
+                        <option value="Sabtu">Sabtu</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        Jam Mulai <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" name="jam_mulai" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        Jam Selesai <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" name="jam_selesai" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" required>
+                </div>
+                <div class="mb-5">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">Ruangan</label>
+                    <input type="text" name="ruangan" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" placeholder="Contoh: Lab 301">
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" class="flex-1 py-2.5 px-4 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition-all duration-300" onclick="closeModal('modalJadwal')">Batal</button>
+                    <button type="submit" class="flex-1 py-2.5 px-4 bg-purple-600 text-white rounded-lg font-medium text-sm hover:bg-purple-700 transition-all duration-300">Simpan</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="modal fade" id="modalDetailTugas" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0"><div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold" id="detail_judul">Judul Tugas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><span class="badge bg-light text-dark border" id="detail_mk">Mata Kuliah</span> <span class="badge bg-primary" id="detail_status">Status</span></div><div class="d-flex align-items-center text-muted small mb-4"><i class="fa-regular fa-clock me-2"></i> <span id="detail_deadline">Deadline</span></div><h6 class="fw-bold small text-muted">DESKRIPSI</h6><p class="bg-light p-3 rounded small text-secondary" id="detail_deskripsi" style="white-space: pre-wrap;">...</p></div><div class="modal-footer border-0 pt-0"><button type="button" class="btn btn-primary w-100" data-bs-dismiss="modal">Tutup</button></div></div></div></div>
+    <!-- Modal Tambah Tugas -->
+    <div id="modalTugas" class="modal hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-5">
+        <div class="modal-content bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-5">
+                <div class="text-lg font-bold text-gray-800">Tambah Tugas</div>
+                <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" onclick="closeModal('modalTugas')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form action="proses_tambah.php" method="POST">
+                <input type="hidden" name="type" value="tugas">
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        Judul Tugas <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="judul" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" placeholder="Contoh: Tugas UTS Basis Data" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">Mata Kuliah</label>
+                    <input type="text" name="matakuliah" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" placeholder="Contoh: Basis Data">
+                </div>
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        Deadline <span class="text-red-500">*</span>
+                    </label>
+                    <input type="datetime-local" name="deadline" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" required>
+                </div>
+                <div class="mb-5">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">Deskripsi</label>
+                    <textarea name="deskripsi" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 min-h-[80px] resize-y" placeholder="Deskripsi tugas..."></textarea>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" class="flex-1 py-2.5 px-4 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition-all duration-300" onclick="closeModal('modalTugas')">Batal</button>
+                    <button type="submit" class="flex-1 py-2.5 px-4 bg-purple-600 text-white rounded-lg font-medium text-sm hover:bg-purple-700 transition-all duration-300">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    <div class="modal fade" id="modalTugas" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0"><div class="modal-header border-0 pb-0"><div><h5 class="modal-title fw-bold">Tambah Tugas</h5></div><button type="button" class="btn-close mb-auto" data-bs-dismiss="modal"></button></div><div class="modal-body pt-3"><form action="proses_tambah.php" method="POST"><input type="hidden" name="tipe" value="tugas"><div class="mb-3"><label class="form-label fw-bold small mb-1">Judul</label><input type="text" name="judul" class="form-control" required></div><div class="mb-3"><label class="form-label fw-bold small mb-1">Mata Kuliah</label><input type="text" name="nama_mk" class="form-control" required></div><div class="row mb-3"><div class="col-6"><label class="form-label fw-bold small mb-1">Deadline</label><input type="date" name="deadline" class="form-control" required></div><div class="col-6"><label class="form-label fw-bold small mb-1">Prioritas</label><select name="prioritas" class="form-select"><option>Sedang</option><option>Tinggi</option></select></div></div><div class="mb-4"><label class="form-label fw-bold small mb-1">Deskripsi</label><textarea name="deskripsi" class="form-control" rows="3"></textarea></div><div class="d-flex justify-content-end"><button type="submit" class="btn btn-primary px-3">Simpan</button></div></form></div></div></div></div>
-    
-    <div class="modal fade" id="modalJadwal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0"><div class="modal-header border-0 pb-0"><div><h5 class="modal-title fw-bold">Tambah Jadwal</h5></div><button type="button" class="btn-close mb-auto" data-bs-dismiss="modal"></button></div><div class="modal-body pt-3"><form action="proses_tambah.php" method="POST"><input type="hidden" name="tipe" value="jadwal"><div class="mb-3"><label class="form-label fw-bold small mb-1">Nama Mata Kuliah</label><input type="text" name="nama_mk" class="form-control" placeholder="Pemrograman Web" required></div><div class="mb-3"><label class="form-label fw-bold small mb-1">Kode Kelas</label><input type="text" name="kelas" class="form-control" placeholder="IF-47-02" required></div><div class="row mb-3"><div class="col-5"><label class="form-label fw-bold small mb-1">Hari</label><select name="hari" class="form-select"><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option></select></div><div class="col-7"><label class="form-label fw-bold small mb-1">Waktu</label><input type="text" name="waktu" class="form-control" placeholder="08:00-10:00" required></div></div><div class="mb-3"><label class="form-label fw-bold small mb-1">Ruangan</label><input type="text" name="ruangan" class="form-control" required></div><div class="mb-4"><label class="form-label fw-bold small mb-1">Dosen</label><input type="text" name="dosen" class="form-control"></div><div class="d-flex justify-content-end"><button type="submit" class="btn btn-primary px-3">Simpan</button></div></form></div></div></div></div>
-    
-    <div class="modal fade" id="modalEditJadwal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0"><div class="modal-header border-0 pb-0"><div><h5 class="modal-title fw-bold">Edit Jadwal</h5></div><button type="button" class="btn-close mb-auto" data-bs-dismiss="modal"></button></div><div class="modal-body pt-3"><form action="proses_edit.php" method="POST"><input type="hidden" name="tipe" value="jadwal"><input type="hidden" name="id_jadwal" id="edit_id_jadwal"><div class="mb-3"><label class="form-label fw-bold small mb-1">Mata Kuliah</label><input type="text" id="edit_nama_mk" class="form-control bg-light" readonly></div><div class="mb-3"><label class="form-label fw-bold small mb-1">Kode Kelas</label><input type="text" name="kelas" id="edit_kelas" class="form-control" required></div><div class="row mb-3"><div class="col-5"><label class="form-label fw-bold small mb-1">Hari</label><select name="hari" id="edit_hari" class="form-select"><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option></select></div><div class="col-7"><label class="form-label fw-bold small mb-1">Waktu</label><input type="text" name="waktu" id="edit_waktu" class="form-control" required></div></div><div class="mb-3"><label class="form-label fw-bold small mb-1">Ruangan</label><input type="text" name="ruangan" id="edit_ruangan" class="form-control" required></div><div class="d-flex justify-content-end"><button type="submit" class="btn btn-primary px-3">Simpan Perubahan</button></div></form></div></div></div></div>
+    <!-- Modal Buat Grup -->
+    <div id="modalGrup" class="modal hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-5">
+        <div class="modal-content bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-5">
+                <div class="text-lg font-bold text-gray-800">Buat Grup Baru</div>
+                <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" onclick="closeModal('modalGrup')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form action="proses_tambah.php" method="POST">
+                <input type="hidden" name="type" value="grup">
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        Nama Grup <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="nama_grup" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" placeholder="Contoh: Kelas 3IF-01" required>
+                </div>
+                <div class="mb-5">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">Deskripsi</label>
+                    <textarea name="deskripsi" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 min-h-[80px] resize-y" placeholder="Deskripsi grup..."></textarea>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" class="flex-1 py-2.5 px-4 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition-all duration-300" onclick="closeModal('modalGrup')">Batal</button>
+                    <button type="submit" class="flex-1 py-2.5 px-4 bg-purple-600 text-white rounded-lg font-medium text-sm hover:bg-purple-700 transition-all duration-300">Buat Grup</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    <div class="modal fade" id="modalEditTugas" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0"><div class="modal-header border-0 pb-0"><div><h5 class="modal-title fw-bold">Edit Tugas</h5></div><button type="button" class="btn-close mb-auto" data-bs-dismiss="modal"></button></div><div class="modal-body pt-3"><form action="proses_edit.php" method="POST"><input type="hidden" name="tipe" value="tugas"><input type="hidden" name="id_tugas" id="edit_id_tugas"><div class="mb-3"><label class="form-label fw-bold small mb-1">Judul Tugas</label><input type="text" name="judul" id="edit_judul" class="form-control" required></div><div class="mb-3"><label class="form-label fw-bold small mb-1">Deadline</label><input type="date" name="deadline" id="edit_deadline" class="form-control" required></div><div class="mb-4"><label class="form-label fw-bold small mb-1">Deskripsi</label><textarea name="deskripsi" id="edit_deskripsi" class="form-control" rows="3"></textarea></div><div class="d-flex justify-content-end"><button type="submit" class="btn btn-primary px-3">Simpan Perubahan</button></div></form></div></div></div></div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
     <script>
-        $(document).ready(function() {
-            // View Detail
-            $('.btn-view-detail').on('click', function(e) {
-                if ($(e.target).closest('button').length || $(e.target).closest('a').length) return;
-                $('#detail_judul').text($(this).data('judul'));
-                $('#detail_mk').text($(this).data('mk'));
-                $('#detail_deadline').text($(this).data('deadline'));
-                $('#detail_status').text($(this).data('status'));
-                var desc = $(this).data('desc');
-                if(desc == "" || desc == "-") desc = "Tidak ada deskripsi.";
-                $('#detail_deskripsi').text(desc);
-                if($(this).data('status') == 'Terlewat') $('#detail_status').removeClass('bg-primary').addClass('bg-dark');
-                else if($(this).data('status') == 'Mendesak') $('#detail_status').removeClass('bg-primary').addClass('bg-danger');
-                else $('#detail_status').addClass('bg-primary').removeClass('bg-danger bg-dark');
-                $('#modalDetailTugas').modal('show');
+        // Tab Switching
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remove active styles from all tabs
+                document.querySelectorAll('.nav-tab').forEach(t => {
+                    t.style.background = '';
+                    t.classList.remove('text-white', 'shadow-md');
+                    t.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300', 'hover:bg-gray-50');
+                });
+                
+                // Add active styles to clicked tab
+                this.classList.remove('bg-white', 'text-gray-700', 'border', 'border-gray-300', 'hover:bg-gray-50');
+                this.classList.add('text-white', 'shadow-md');
+                this.style.background = 'linear-gradient(to right, #4F39F6, #9810FA)';
+                
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                // Show selected tab content
+                const tabName = this.getAttribute('data-tab');
+                document.getElementById('tab-' + tabName).classList.remove('hidden');
             });
-            // Populate Edit Jadwal
-            $('.btn-edit-jadwal').on('click', function() {
-                $('#edit_id_jadwal').val($(this).data('id')); $('#edit_nama_mk').val($(this).data('mk')); $('#edit_kelas').val($(this).data('kelas')); $('#edit_hari').val($(this).data('hari')); $('#edit_waktu').val($(this).data('waktu')); $('#edit_ruangan').val($(this).data('ruangan')); $('#modalEditJadwal').modal('show');
+        });
+
+        // Modal Functions
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
             });
-            // Populate Edit Tugas
-            $('.btn-edit-tugas').on('click', function() {
-                $('#edit_id_tugas').val($(this).data('id')); $('#edit_judul').val($(this).data('judul')); $('#edit_deadline').val($(this).data('deadline')); $('#edit_deskripsi').val($(this).data('deskripsi')); $('#modalEditTugas').modal('show');
-            });
+        });
+
+        // Dark mode toggle (placeholder)
+        document.querySelector('[title="Mode Gelap"]').addEventListener('click', function() {
+            alert('Fitur mode gelap akan segera hadir!');
+        });
+
+        // Settings button (placeholder)
+        document.querySelector('[title="Pengaturan"]').addEventListener('click', function() {
+            alert('Halaman pengaturan akan segera hadir!');
+        });
+
+        // Task menu toggle
+        document.addEventListener('click', function(e) {
+            // Toggle menu when clicking three-dot button
+            if (e.target.closest('.task-menu-btn')) {
+                e.stopPropagation();
+                const btn = e.target.closest('.task-menu-btn');
+                const taskId = btn.getAttribute('data-task-id');
+                const menu = document.getElementById('menu-' + taskId);
+                
+                // Close all other menus
+                document.querySelectorAll('.task-menu').forEach(m => {
+                    if (m !== menu) {
+                        m.classList.add('hidden');
+                    }
+                });
+                
+                // Toggle current menu
+                menu.classList.toggle('hidden');
+            } else {
+                // Close all menus when clicking outside
+                document.querySelectorAll('.task-menu').forEach(m => {
+                    m.classList.add('hidden');
+                });
+            }
         });
     </script>
 </body>
