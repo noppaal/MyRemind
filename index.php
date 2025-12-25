@@ -170,6 +170,7 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -198,7 +199,7 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
         }
     </style>
 </head>
-<body class="min-h-screen font-sans" style="background: linear-gradient(to bottom, #EEF2FF, #FAF5FF, #FDF2F8);">
+<body class="min-h-screen font-sans transition-colors duration-300 dark:bg-gray-900" style="background: linear-gradient(to bottom, #EEF2FF, #FAF5FF, #FDF2F8);">
     <!-- Notification Toast -->
     <?php if (isset($_GET['msg'])): ?>
     <?php
@@ -232,8 +233,33 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
             $bg_color = 'bg-green-50';
             $text_color = 'text-green-700';
             break;
+        case 'password_changed':
+            $message = 'Password berhasil diubah!';
+            $bg_color = 'bg-green-100';
+            $text_color = 'text-green-700';
+            break;
+        case 'wrong_old_password':
+            $message = 'Password lama tidak sesuai!';
+            $bg_color = 'bg-red-100';
+            $text_color = 'text-red-700';
+            break;
+        case 'password_mismatch':
+            $message = 'Password baru dan konfirmasi tidak cocok!';
+            $bg_color = 'bg-red-100';
+            $text_color = 'text-red-700';
+            break;
+        case 'password_too_short':
+            $message = 'Password minimal 6 karakter!';
+            $bg_color = 'bg-red-100';
+            $text_color = 'text-red-700';
+            break;
+        case 'change_failed':
+            $message = 'Gagal mengubah password!';
+            $bg_color = 'bg-red-100';
+            $text_color = 'text-red-700';
+            break;
         default:
-            $message = 'Operasi berhasil dilakukan.';
+            $message = ' berhasil reload halaman.';
             break;
     }
     ?>
@@ -280,18 +306,19 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
     </style>
     <?php endif; ?>
     
-    <div class="max-w-md mx-auto min-h-screen shadow-xl">
+    <div class="max-w-md mx-auto min-h-screen shadow-xl bg-white dark:bg-gray-900 transition-colors duration-300">
         <!-- Top Header Bar -->
-        <div class="bg-white w-full shadow-md px-4 py-3 flex justify-between items-center">
-            <div class="text-xl font-bold text-gray-800">MyRemind</div>
+        <div class="bg-white dark:bg-gray-800 w-full shadow-md px-4 py-3 flex justify-between items-center transition-colors duration-300">
+            <div class="text-xl font-bold text-gray-800 dark:text-white">MyRemind</div>
             <div class="flex gap-2">        
-                <button class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" title="Mode Gelap">
-                    <i class="fas fa-moon text-sm"></i>
+                <button id="darkModeToggle" class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 flex items-center justify-center" title="Mode Gelap">
+                    <i class="fas fa-moon text-sm dark:hidden"></i>
+                    <i class="fas fa-sun text-sm hidden dark:inline"></i>
                 </button>
-                <button class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" title="Pengaturan">
+                <button class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 flex items-center justify-center" title="Pengaturan" onclick="window.location.href='setting_profile.php'">
                     <i class="fas fa-cog text-sm"></i>
                 </button>
-                <button class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" title="Logout" onclick="window.location.href='logout.php'">
+                <button class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 flex items-center justify-center" title="Logout" onclick="window.location.href='logout.php'">
                     <i class="fas fa-sign-out-alt text-sm"></i>
                 </button>
             </div>
@@ -300,17 +327,17 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
       
         <!-- Navigation Tabs -->
         <div class="mx-4 mt-4">
-            <div class="bg-white rounded-3xl shadow-lg p-2  ">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-2 transition-colors duration-300">
             <div class="flex gap-3">
                 <button class="nav-tab flex-1 py-3 px-5 rounded-full font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 text-white shadow-md" style="background: linear-gradient(to right, #4F39F6, #9810FA);" data-tab="kalender">
                     <i class="far fa-calendar"></i>
                     Kalender
                 </button>
-                <button class="nav-tab flex-1 py-3 px-5 rounded-full font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50" data-tab="tugas">
+                <button class="nav-tab flex-1 py-3 px-5 rounded-full font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600" data-tab="tugas">
                     <i class="fas fa-check-square"></i>
                     Tugas
                 </button>
-                <button class="nav-tab flex-1 py-3 px-5 rounded-full font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50" data-tab="grup">
+                <button class="nav-tab flex-1 py-3 px-5 rounded-full font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600" data-tab="grup">
                     <i class="fas fa-users"></i>
                     Grup
                 </button>
@@ -1212,16 +1239,6 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
             });
         });
 
-        // Dark mode toggle (placeholder)
-        document.querySelector('[title="Mode Gelap"]').addEventListener('click', function() {
-            alert('Fitur mode gelap akan segera hadir!');
-        });
-
-        // Settings button (placeholder)
-        document.querySelector('[title="Pengaturan"]').addEventListener('click', function() {
-            alert('Halaman pengaturan akan segera hadir!');
-        });
-
         // Task menu toggle
         document.addEventListener('click', function(e) {
             // Toggle menu when clicking three-dot button
@@ -1424,6 +1441,31 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                     container.innerHTML = '<div class="text-center py-8 text-red-500">Error loading tasks</div>';
                 });
         }
+        
+        
+        // Dark Mode Toggle
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const htmlElement = document.documentElement;
+        
+        // Check for saved dark mode preference or default to light mode
+        const currentMode = localStorage.getItem('darkMode') || 'light';
+        
+        // Apply saved preference on page load
+        if (currentMode === 'dark') {
+            htmlElement.classList.add('dark');
+        }
+        
+        // Toggle dark mode
+        darkModeToggle.addEventListener('click', function() {
+            htmlElement.classList.toggle('dark');
+            
+            // Save preference
+            if (htmlElement.classList.contains('dark')) {
+                localStorage.setItem('darkMode', 'dark');
+            } else {
+                localStorage.setItem('darkMode', 'light');
+            }
+        });
         
         // Load Groups Function
         function loadGroups() {
