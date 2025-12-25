@@ -37,12 +37,12 @@ $deskripsi = empty($t['Deskripsi']) ? '' : $t['Deskripsi'];
             <!-- Dropdown menu (hidden by default) -->
             <div class="task-menu hidden absolute right-0 top-8 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10 min-w-[150px]" id="menu-<?= $t['KodeTugas'] ?>">
                 <?php if($t['StatusTugas'] == 'Aktif'): ?>
-                <a href="proses_progress.php?id=<?= $t['KodeTugas'] ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" onclick="return confirm('Mulai mengerjakan tugas ini?')">
+                <a href="<?= BASE_URL ?>/public/proses_progress.php?kode=<?= $t['KodeTugas'] ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" onclick="return confirm('Mulai mengerjakan tugas ini?')">
                     <i class="fas fa-play mr-2 text-blue-600"></i> Mulai
                 </a>
                 <?php endif; ?>
                 <?php if(!$isDone): ?>
-                <a href="proses_selesai.php?id=<?= $t['KodeTugas'] ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" onclick="return confirm('Tandai tugas ini sebagai selesai?')">
+                <a href="<?= BASE_URL ?>/public/proses_selesai.php?kode=<?= $t['KodeTugas'] ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" onclick="return confirm('Tandai tugas ini sebagai selesai?')">
                     <i class="fas fa-check mr-2 text-green-600"></i> Tandai Selesai
                 </a>
                 <?php endif; ?>
@@ -53,7 +53,7 @@ $deskripsi = empty($t['Deskripsi']) ? '' : $t['Deskripsi'];
                     data-deskripsi="<?= htmlspecialchars($t['Deskripsi']) ?>">
                     <i class="fas fa-edit mr-2 text-blue-600"></i> Edit
                 </button>
-                <a href="hapus.php?id=<?= $t['KodeTugas'] ?>&type=tugas" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 transition-colors" onclick="return confirm('Yakin ingin menghapus tugas ini?')">
+                <a href="<?= BASE_URL ?>/public/hapus.php?kode=<?= $t['KodeTugas'] ?>&type=tugas" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 transition-colors" onclick="return confirm('Yakin ingin menghapus tugas ini?')">
                     <i class="fas fa-trash mr-2"></i> Hapus
                 </a>
             </div>
