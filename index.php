@@ -18,14 +18,25 @@ $resSelesai = mysqli_query($conn, "SELECT COUNT(*) as total FROM tugas WHERE Sta
 $countSelesai = mysqli_fetch_assoc($resSelesai)['total'];
 $countTotal = $countAktif + $countSelesai;
 
-// B. Jadwal Hari Ini
-$hariIniIndo = ['Sun'=>'Minggu','Mon'=>'Senin','Tue'=>'Selasa','Wed'=>'Rabu','Thu'=>'Kamis','Fri'=>'Jumat','Sat'=>'Sabtu'];
-$hariInggris = date('D');
-$hariIni = $hariIniIndo[$hariInggris];
+// B. Nama Hari dan Tanggal
+$hariInggris = date('l'); // e.g., Monday, Tuesday
+$namaHariMap = [
+    'Sunday' => 'Minggu',
+    'Monday' => 'Senin',
+    'Tuesday' => 'Selasa',
+    'Wednesday' => 'Rabu',
+    'Thursday' => 'Kamis',
+    'Friday' => 'Jumat',
+    'Saturday' => 'Sabtu'
+];
+$namaHari = $namaHariMap[$hariInggris];
+$hariIni = $namaHari; // For jadwal query
+
+// Count jadwal for today using the new $hariIni
 $resJadwalHariIni = mysqli_query($conn, "SELECT COUNT(*) as total FROM jadwalkuliah WHERE NIM = '$nim' AND Hari = '$hariIni'");
 $countJadwal = mysqli_fetch_assoc($resJadwalHariIni)['total'];
 
-// C. Marker Kalender
+// C. Nama Bulan untuk Kalender
 // Handle month navigation
 if (isset($_GET['cal_month']) && isset($_GET['cal_year'])) {
     $bulanIni = str_pad($_GET['cal_month'], 2, '0', STR_PAD_LEFT);
@@ -416,7 +427,10 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                             $hasDeadlines = isset($deadlinesMap[$day]);
                             $taskCount = $hasDeadlines ? count($deadlinesMap[$day]) : 0;
                             
-                            echo '<div class="' . $classes . '" data-date="' . $day . '" data-month="' . $bulanIni . '" data-year="' . $tahunIni . '">';
+                            // Make date clickable
+                            $clickable = $hasDeadlines ? 'onclick="showTasksForDate(' . $day . ', \'' . $bulanIni . '\', \'' . $tahunIni . '\')"' : '';
+                            
+                            echo '<div class="' . $classes . '" data-date="' . $day . '" data-month="' . $bulanIni . '" data-year="' . $tahunIni . '" ' . $clickable . '>';
                             echo '<span class="' . ($isToday ? 'text-white' : '') . '">' . $day . '</span>';
                             
                             // Deadline markers
@@ -628,6 +642,83 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                             <p>Tidak ada tugas yang terlewat</p>
                         </div>
                         <?php endif; ?>
+                    </div>
+                </div>
+                
+                <!-- Jadwal Kuliah Hari Ini Section -->
+                <div class="mt-6 bg-white rounded-2xl p-5 shadow-lg border border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Jadwal Kuliah</h3>
+                            <p class="text-xs text-gray-500 mt-1" id="jadwal-subtitle"><?= $namaHari ?>, <?= date('d F Y') ?></p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="filter-hari" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all">
+                                <option value="<?= $namaHari ?>"><?= $namaHari ?> (Hari Ini)</option>
+                                <option value="Senin">Senin</option>
+                                <option value="Selasa">Selasa</option>
+                                <option value="Rabu">Rabu</option>
+                                <option value="Kamis">Kamis</option>
+                                <option value="Jumat">Jumat</option>
+                                <option value="Sabtu">Sabtu</option>
+                                <option value="Minggu">Minggu</option>
+                            </select>
+                            <span class="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full" id="jadwal-count">
+                                <?= $countJadwal ?> Kelas
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div id="jadwal-container">
+                    <?php
+                    $jadwalHariIni = [];
+                    mysqli_data_seek($resultJadwalToday, 0); // Reset pointer
+                    while($j = mysqli_fetch_assoc($resultJadwalToday)) {
+                        $jadwalHariIni[] = $j;
+                    }
+                    $countJadwal = count($jadwalHariIni);
+                    ?>
+                    <?php if ($countJadwal > 0): ?>
+                        <div class="space-y-3">
+                            <?php foreach ($jadwalHariIni as $j): ?>
+                            <div class="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 hover:shadow-md transition-all duration-300">
+                                <div class="flex items-start gap-3">
+                                    <div class="flex-shrink-0 text-center">
+                                        <div class="bg-blue-500 text-white rounded-lg px-3 py-2">
+                                            <div class="text-xs font-semibold"><?= date('H:i', strtotime($j['JamMulai'])) ?></div>
+                                            <div class="text-[10px]">-</div>
+                                            <div class="text-xs font-semibold"><?= date('H:i', strtotime($j['JamSelesai'])) ?></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-800 text-sm mb-1"><?= htmlspecialchars($j['NamaMK']) ?></h4>
+                                        <div class="flex flex-wrap gap-2 text-xs text-gray-600">
+                                            <div class="flex items-center gap-1">
+                                                <i class="fas fa-door-open"></i>
+                                                <span><?= htmlspecialchars($j['Ruangan']) ?></span>
+                                            </div>
+                                            <div class="flex items-center gap-1">
+                                                <i class="fas fa-users"></i>
+                                                <span><?= htmlspecialchars($j['Kelas']) ?></span>
+                                            </div>
+                                            <?php if (!empty($j['NamaDosen'])): ?>
+                                            <div class="flex items-center gap-1">
+                                                <i class="fas fa-chalkboard-teacher"></i>
+                                                <span><?= htmlspecialchars($j['NamaDosen']) ?></span>
+                                            </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-12 text-gray-400">
+                            <i class="fas fa-calendar-times text-5xl mb-3"></i>
+                            <p class="text-sm font-medium">Tidak ada jadwal kuliah hari ini.</p>
+                        </div>
+                    <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -949,6 +1040,26 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
         </div>
     </div>
 
+    <!-- Modal Tugas Tanggal Tertentu -->
+    <div id="modalTasksDate" class="modal hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-5">
+        <div class="modal-content bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-5">
+                <div>
+                    <div class="text-lg font-bold text-gray-800" id="modal-date-title">Tugas pada Tanggal</div>
+                    <p class="text-xs text-gray-500 mt-1" id="modal-date-subtitle"></p>
+                </div>
+                <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" onclick="closeModal('modalTasksDate')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Tasks Container -->
+            <div id="modal-tasks-container" class="space-y-3">
+                <!-- Tasks will be loaded here via JavaScript -->
+            </div>
+        </div>
+    </div>
+
     <script>
         // Tab Switching
         document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -978,18 +1089,22 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
 
         // Modal Functions
         function openModal(modalId) {
-            document.getElementById(modalId).classList.add('active');
+            document.getElementById(modalId).classList.remove('hidden');
+            document.getElementById(modalId).classList.add('flex');
         }
-
+        
         function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
         }
 
         // Close modal when clicking outside
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', function(e) {
                 if (e.target === this) {
-                    this.classList.remove('active');
+                    this.classList.remove('flex');
+                    this.classList.add('hidden');
                 }
             });
         });
@@ -1050,6 +1165,162 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                 document.getElementById('deadline-' + targetTab).classList.remove('hidden');
             });
         });
+        
+        // Jadwal Filter Handler
+        document.getElementById('filter-hari').addEventListener('change', function() {
+            const selectedDay = this.value;
+            const container = document.getElementById('jadwal-container');
+            const countBadge = document.getElementById('jadwal-count');
+            const subtitle = document.getElementById('jadwal-subtitle');
+            
+            // Show loading
+            container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+            
+            // Fetch jadwal for selected day
+            fetch('get_jadwal.php?hari=' + encodeURIComponent(selectedDay))
+                .then(response => response.json())
+                .then(data => {
+                    // Update count
+                    countBadge.textContent = data.count + ' Kelas';
+                    
+                    // Update subtitle
+                    const isToday = selectedDay === '<?= $namaHari ?>';
+                    if (isToday) {
+                        subtitle.textContent = selectedDay + ', <?= date('d F Y') ?>';
+                    } else {
+                        subtitle.textContent = selectedDay;
+                    }
+                    
+                    // Update content
+                    if (data.count > 0) {
+                        let html = '<div class="space-y-3">';
+                        data.jadwal.forEach(j => {
+                            html += `
+                            <div class="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 hover:shadow-md transition-all duration-300">
+                                <div class="flex items-start gap-3">
+                                    <div class="flex-shrink-0 text-center">
+                                        <div class="bg-blue-500 text-white rounded-lg px-3 py-2">
+                                            <div class="text-xs font-semibold">${j.JamMulai}</div>
+                                            <div class="text-[10px]">-</div>
+                                            <div class="text-xs font-semibold">${j.JamSelesai}</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-800 text-sm mb-1">${j.NamaMK}</h4>
+                                        <div class="flex flex-wrap gap-2 text-xs text-gray-600">
+                                            <div class="flex items-center gap-1">
+                                                <i class="fas fa-door-open"></i>
+                                                <span>${j.Ruangan}</span>
+                                            </div>
+                                            <div class="flex items-center gap-1">
+                                                <i class="fas fa-users"></i>
+                                                <span>${j.Kelas}</span>
+                                            </div>
+                                            ${j.NamaDosen ? `
+                                            <div class="flex items-center gap-1">
+                                                <i class="fas fa-chalkboard-teacher"></i>
+                                                <span>${j.NamaDosen}</span>
+                                            </div>` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        });
+                        html += '</div>';
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = `
+                        <div class="text-center py-12 text-gray-400">
+                            <i class="fas fa-calendar-times text-5xl mb-3"></i>
+                            <p class="text-sm font-medium">Tidak ada jadwal kuliah untuk ${selectedDay}.</p>
+                        </div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    container.innerHTML = '<div class="text-center py-8 text-red-500">Error loading jadwal</div>';
+                });
+        });
+        
+        // Show Tasks for Selected Date
+        function showTasksForDate(day, month, year) {
+            const modal = document.getElementById('modalTasksDate');
+            const container = document.getElementById('modal-tasks-container');
+            const titleEl = document.getElementById('modal-date-title');
+            const subtitleEl = document.getElementById('modal-date-subtitle');
+            
+            // Format date
+            const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                              'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            const dateStr = day + ' ' + monthNames[parseInt(month) - 1] + ' ' + year;
+            
+            titleEl.textContent = 'Tugas pada ' + dateStr;
+            subtitleEl.textContent = 'Menampilkan semua tugas dengan deadline pada tanggal ini';
+            
+            // Show loading
+            container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+            
+            // Open modal
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Fetch tasks for this date
+            fetch(`get_tasks_by_date.php?day=${day}&month=${month}&year=${year}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.count > 0) {
+                        let html = '';
+                        data.tasks.forEach(task => {
+                            // Determine status badge
+                            let statusBadge = '';
+                            let statusColor = '';
+                            if (task.StatusTugas === 'Selesai') {
+                                statusBadge = 'Selesai';
+                                statusColor = 'bg-green-100 text-green-700';
+                            } else if (task.urgency === 'overdue') {
+                                statusBadge = 'Terlewat';
+                                statusColor = 'bg-red-100 text-red-700';
+                            } else if (task.urgency === 'urgent') {
+                                statusBadge = 'Mendesak';
+                                statusColor = 'bg-orange-100 text-orange-700';
+                            } else {
+                                statusBadge = 'Aktif';
+                                statusColor = 'bg-blue-100 text-blue-700';
+                            }
+                            
+                            html += `
+                            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 class="font-semibold text-gray-800 text-sm flex-1">${task.JudulTugas}</h4>
+                                    <span class="${statusColor} text-xs font-medium px-2 py-1 rounded-full ml-2">${statusBadge}</span>
+                                </div>
+                                <p class="text-xs text-gray-600 mb-2">${task.NamaMK}</p>
+                                ${task.Deskripsi ? `<p class="text-xs text-gray-500 mb-2">${task.Deskripsi}</p>` : ''}
+                                <div class="flex items-center justify-between text-xs">
+                                    <div class="flex items-center text-gray-500">
+                                        <i class="far fa-clock mr-1"></i>
+                                        <span>${task.DeadlineFormatted}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-gray-400">${task.JenisTugas}</span>
+                                    </div>
+                                </div>
+                            </div>`;
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = `
+                        <div class="text-center py-12 text-gray-400">
+                            <i class="fas fa-calendar-check text-5xl mb-3"></i>
+                            <p class="text-sm font-medium">Tidak ada tugas pada tanggal ini</p>
+                        </div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    container.innerHTML = '<div class="text-center py-8 text-red-500">Error loading tasks</div>';
+                });
+        }
     </script>
 </body>
 </html>

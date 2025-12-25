@@ -11,4 +11,7 @@ if (!$conn) {
 }
 
 session_start();
+
+// Set timezone to Indonesia Jakarta
+date_default_timezone_set('Asia/Jakarta');
 ?>
