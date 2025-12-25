@@ -7,15 +7,26 @@ if (isset($_GET['id']) && isset($_SESSION['nim'])) {
     $nim = $_SESSION['nim'];
 
     // Update status tugas menjadi 'In Progress'
-    // Kita tambahkan filter NIM agar user tidak bisa mengubah tugas orang lain
     $query = "UPDATE tugas SET StatusTugas = 'In Progress' WHERE KodeTugas = '$id_tugas' AND NIM = '$nim'";
 
     if (mysqli_query($conn, $query)) {
-        header("Location: index.php?msg=progress_sukses");
+        // Cek apakah ada row yang ter-update
+        if (mysqli_affected_rows($conn) > 0) {
+            header("Location: index.php?msg=progress_sukses");
+        } else {
+            header("Location: index.php?msg=progress_no_change");
+        }
     } else {
-        echo "Error: " . mysqli_error($conn);
+        // Jika error, kemungkinan migration belum dijalankan
+        $error = mysqli_error($conn);
+        if (strpos($error, 'Data truncated') !== false || strpos($error, 'StatusTugas') !== false) {
+            header("Location: index.php?msg=migration_required");
+        } else {
+            header("Location: index.php?msg=progress_error");
+        }
     }
 } else {
     header("Location: index.php");
 }
 ?>
+

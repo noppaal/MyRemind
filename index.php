@@ -201,54 +201,43 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
 <body class="min-h-screen font-sans" style="background: linear-gradient(to bottom, #EEF2FF, #FAF5FF, #FDF2F8);">
     <!-- Notification Toast -->
     <?php if (isset($_GET['msg'])): ?>
-    <div id="notification-toast" class="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-xl border-l-4 p-4 max-w-sm animate-slide-in">
-        <?php
-        $msg = $_GET['msg'];
-        $icon = 'fa-check-circle';
-        $color = 'border-green-500';
-        $bg_color = 'bg-green-50';
-        $text_color = 'text-green-800';
-        $message = '';
-        
-        switch($msg) {
-            case 'import_success':
-                $imported = isset($_GET['imported']) ? $_GET['imported'] : 0;
-                $skipped = isset($_GET['skipped']) ? $_GET['skipped'] : 0;
-                $message = "Berhasil mengimpor $imported event dari LMS!";
-                if ($skipped > 0) {
-                    $message .= " ($skipped event dilewati karena sudah ada)";
-                }
-                break;
-            case 'invalid_url':
-                $icon = 'fa-exclamation-circle';
-                $color = 'border-red-500';
-                $bg_color = 'bg-red-50';
-                $text_color = 'text-red-800';
-                $message = 'URL tidak valid. Pastikan URL benar.';
-                break;
-            case 'invalid_ical_format':
-                $icon = 'fa-exclamation-circle';
-                $color = 'border-red-500';
-                $bg_color = 'bg-red-50';
-                $text_color = 'text-red-800';
-                $message = 'Format URL harus berupa file .ics';
-                break;
-            case 'fetch_failed':
-                $icon = 'fa-exclamation-circle';
-                $color = 'border-red-500';
-                $bg_color = 'bg-red-50';
-                $text_color = 'text-red-800';
-                $message = 'Gagal mengambil data dari URL. Periksa koneksi atau URL.';
-                break;
-            case 'no_events':
-                $icon = 'fa-info-circle';
-                $color = 'border-yellow-500';
-                $bg_color = 'bg-yellow-50';
-                $text_color = 'text-yellow-800';
-                $message = 'Tidak ada event ditemukan di kalender.';
-                break;
-        }
-        ?>
+    <?php
+    $msg = $_GET['msg'];
+    $icon = 'fa-check-circle';
+    $color = 'border-green-500';
+    $bg_color = 'bg-green-50';
+    $text_color = 'text-green-800';
+    $message = '';
+    
+    switch($msg) {
+        case 'import_success':
+            $imported = isset($_GET['imported']) ? $_GET['imported'] : 0;
+            $skipped = isset($_GET['skipped']) ? $_GET['skipped'] : 0;
+            $message = "Berhasil mengimpor $imported event dari LMS!";
+            if ($skipped > 0) {
+                $message .= " ($skipped event dilewati karena sudah ada)";
+            }
+            break;
+        case 'migration_required':
+            $message = 'Migration database belum dijalankan! Silakan jalankan query ALTER TABLE di phpMyAdmin.';
+            $icon = 'fa-exclamation-triangle';
+            $color = 'border-red-500';
+            $bg_color = 'bg-red-50';
+            $text_color = 'text-red-700';
+            break;
+        case 'progress_sukses':
+            $message = 'Status tugas berhasil diubah ke "In Progress"!';
+            $icon = 'fa-check-circle';
+            $color = 'border-green-500';
+            $bg_color = 'bg-green-50';
+            $text_color = 'text-green-700';
+            break;
+        default:
+            $message = 'Operasi berhasil dilakukan.';
+            break;
+    }
+    ?>
+    <div id="notification-toast" class="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-xl border-l-4 <?= $color ?> p-4 max-w-sm animate-slide-in">
         <div class="flex items-start gap-3 <?= $bg_color ?> p-3 rounded">
             <i class="fas <?= $icon ?> <?= $text_color ?> text-xl mt-0.5"></i>
             <div class="flex-1">
@@ -817,31 +806,34 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
 
             <!-- Grup Tab -->
             <div id="tab-grup" class="tab-content hidden">
-                <div class="mb-4">
-                    <div class="flex justify-between items-center mb-3">
-                        <div>
-                            <div class="text-sm font-semibold text-gray-800">Grup</div>
-                            <div class="text-xs text-gray-400 mt-0.5">Kolaborasi dengan teman satu kelas</div>
-                        </div>
-                        <button class="py-2 px-4 rounded-lg font-medium text-sm transition-all duration-300 bg-purple-600 text-white hover:bg-purple-700" onclick="openModal('modalGrup')">
-                            Buat Grup
-                        </button>
-                    </div>
+                <!-- Action Buttons -->
+                <div class="flex gap-2 mb-4">
+                    <button class="flex-1 py-3 px-4 rounded-full font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:shadow-lg shadow-md" onclick="openModal('modalCreateGrup')">
+                        <i class="fas fa-plus"></i>
+                        Buat Grup
+                    </button>
+                    <button class="flex-1 py-3 px-4 rounded-full font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white hover:shadow-lg shadow-md" onclick="openModal('modalJoinGrup')">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Gabung Grup
+                    </button>
                 </div>
 
-                <!-- Example Group -->
-                <div class="flex flex-col gap-3">
-                    <div class="bg-white rounded-lg p-3 flex items-center gap-3 border border-gray-200 transition-all duration-300 hover:shadow-md">
-                        <div class="w-12 h-12 rounded-lg bg-purple-600 flex items-center justify-center text-white text-lg">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="flex-1">
-                            <div class="font-semibold text-gray-800 text-sm mb-0.5">Testing</div>
-                            <div class="text-xs text-gray-400">
-                                <i class="fas fa-user"></i> 2 anggota
-                            </div>
-                        </div>
+                <!-- Groups List -->
+                <div id="groups-container" class="flex flex-col gap-3">
+                    <!-- Loading state -->
+                    <div id="groups-loading" class="text-center py-8">
+                        <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                        <p class="text-sm text-gray-500 mt-2">Memuat grup...</p>
                     </div>
+                    
+                    <!-- Groups will be loaded here via JavaScript -->
+                </div>
+                
+                <!-- Empty state (hidden by default, shown via JS if no groups) -->
+                <div id="groups-empty" class="hidden text-center py-12 text-gray-400">
+                    <i class="fas fa-users text-5xl mb-3"></i>
+                    <p class="text-sm font-medium">Belum ada grup</p>
+                    <p class="text-xs mt-1">Buat grup baru atau gabung dengan grup yang sudah ada</p>
                 </div>
             </div>
         </div>
@@ -1057,6 +1049,78 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
             <div id="modal-tasks-container" class="space-y-3">
                 <!-- Tasks will be loaded here via JavaScript -->
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Create Grup -->
+    <div id="modalCreateGrup" class="modal hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-5">
+        <div class="modal-content bg-white rounded-2xl p-6 max-w-md w-full">
+            <div class="flex justify-between items-center mb-5">
+                <div class="text-lg font-bold text-gray-800">Buat Grup Baru</div>
+                <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" onclick="closeModal('modalCreateGrup')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form action="grup_create.php" method="POST">
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        Nama Grup <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="nama_grup" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" placeholder="Contoh: Kelompok Tugas IF-47-01" required maxlength="100">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        Deskripsi (Opsional)
+                    </label>
+                    <textarea name="deskripsi" rows="3" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300" placeholder="Deskripsi singkat tentang grup ini..."></textarea>
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button type="button" class="flex-1 py-2.5 px-4 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition-all duration-300" onclick="closeModal('modalCreateGrup')">Batal</button>
+                    <button type="submit" class="flex-1 py-2.5 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium text-sm hover:shadow-lg transition-all duration-300">
+                        <i class="fas fa-plus mr-2"></i>Buat Grup
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Join Grup -->
+    <div id="modalJoinGrup" class="modal hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-5">
+        <div class="modal-content bg-white rounded-2xl p-6 max-w-md w-full">
+            <div class="flex justify-between items-center mb-5">
+                <div class="text-lg font-bold text-gray-800">Gabung Grup</div>
+                <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-300 flex items-center justify-center" onclick="closeModal('modalJoinGrup')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5">
+                <div class="flex items-start gap-2">
+                    <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                    <div class="text-sm text-blue-900">
+                        Masukkan kode undangan yang diberikan oleh admin grup untuk bergabung.
+                    </div>
+                </div>
+            </div>
+            
+            <form action="grup_invite_join.php" method="POST">
+                <div class="mb-4">
+                    <label class="block font-medium text-gray-700 mb-2 text-sm">
+                        Kode Undangan <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="invite_code" class="w-full py-2.5 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 uppercase" placeholder="Contoh: ABC12345" required maxlength="20" style="text-transform: uppercase;">
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button type="button" class="flex-1 py-2.5 px-4 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition-all duration-300" onclick="closeModal('modalJoinGrup')">Batal</button>
+                    <button type="submit" class="flex-1 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-medium text-sm hover:shadow-lg transition-all duration-300">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Gabung
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1321,6 +1385,102 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                     container.innerHTML = '<div class="text-center py-8 text-red-500">Error loading tasks</div>';
                 });
         }
+        
+        // Load Groups Function
+        function loadGroups() {
+            const container = document.getElementById('groups-container');
+            const loading = document.getElementById('groups-loading');
+            const empty = document.getElementById('groups-empty');
+            
+            // Show loading
+            loading.classList.remove('hidden');
+            empty.classList.add('hidden');
+            container.innerHTML = '';
+            container.appendChild(loading);
+            
+            // Fetch groups
+            fetch('grup_list.php')
+                .then(response => response.json())
+                .then(data => {
+                    loading.classList.add('hidden');
+                    
+                    if (data.error) {
+                        // Show specific error message
+                        container.innerHTML = `
+                            <div class="text-center py-8">
+                                <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-3"></i>
+                                <p class="text-sm font-medium text-red-600 mb-2">${data.message || 'Error loading groups'}</p>
+                                ${data.error === 'Tables not found' ? `
+                                    <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-left max-w-md mx-auto">
+                                        <p class="text-xs text-yellow-800 font-semibold mb-2">Langkah-langkah:</p>
+                                        <ol class="text-xs text-yellow-700 space-y-1 ml-4 list-decimal">
+                                            <li>Buka phpMyAdmin</li>
+                                            <li>Pilih database db_myremind</li>
+                                            <li>Klik tab SQL</li>
+                                            <li>Jalankan file migration_grup_tables.sql</li>
+                                        </ol>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    if (data.success && data.count > 0) {
+                        let html = '';
+                        data.groups.forEach(group => {
+                            const roleColors = {
+                                'owner': 'bg-yellow-100 text-yellow-700',
+                                'admin': 'bg-blue-100 text-blue-700',
+                                'member': 'bg-gray-100 text-gray-700'
+                            };
+                            const roleColor = roleColors[group.Role] || 'bg-gray-100 text-gray-700';
+                            
+                            html += `
+                            <div class="bg-white rounded-lg p-3 flex items-center gap-3 border border-gray-200 transition-all duration-300 hover:shadow-md cursor-pointer" onclick="window.location.href='detail_group.php?kode=${group.KodeGrup}'">
+                                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-lg">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-semibold text-gray-800 text-sm mb-0.5">${group.NamaGrup}</div>
+                                    <div class="flex items-center gap-2 text-xs text-gray-400">
+                                        <span><i class="fas fa-user"></i> ${group.member_count} anggota</span>
+                                        <span>•</span>
+                                        <span><i class="fas fa-calendar"></i> ${group.event_count} event</span>
+                                    </div>
+                                </div>
+                                <div class="${roleColor} text-xs font-medium px-2 py-1 rounded-full">
+                                    ${group.Role.charAt(0).toUpperCase() + group.Role.slice(1)}
+                                </div>
+                            </div>`;
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        empty.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    loading.classList.add('hidden');
+                    container.innerHTML = `
+                        <div class="text-center py-8">
+                            <i class="fas fa-times-circle text-4xl text-red-400 mb-3"></i>
+                            <p class="text-sm font-medium text-red-600">Error loading groups</p>
+                            <p class="text-xs text-gray-500 mt-1">Periksa console untuk detail error</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Load groups when Grup tab is opened
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                if (tabName === 'grup') {
+                    loadGroups();
+                }
+            });
+        });
     </script>
 </body>
 </html>
