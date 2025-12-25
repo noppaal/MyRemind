@@ -286,8 +286,18 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
 
                 <!-- In Progress Section -->
                 <?php 
-                // For now, we'll use this as a placeholder - you can add logic to track "in progress" status
+                // Query tasks with "In Progress" status
+                $queryInProgress = "SELECT t.*, m.NamaMK 
+                                   FROM tugas t 
+                                   LEFT JOIN matakuliah m ON t.KodeMK = m.KodeMK 
+                                   WHERE t.StatusTugas='In Progress' AND t.NIM = '$nim' 
+                                   ORDER BY t.Deadline ASC";
+                $resInProgress = mysqli_query($conn, $queryInProgress);
                 $inProgressTasks = [];
+                while($t = mysqli_fetch_assoc($resInProgress)) {
+                    if(empty($t['NamaMK'])) $t['NamaMK'] = "Tugas Umum (LMS)";
+                    $inProgressTasks[] = $t;
+                }
                 $inProgressCount = count($inProgressTasks);
                 ?>
                 <div class="mb-6">
@@ -295,7 +305,13 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                         <h3 class="text-lg font-semibold text-gray-800">In Progress</h3>
                         <span class="bg-blue-100 text-blue-700 text-sm font-medium px-3 py-1 rounded-full"><?= $inProgressCount ?></span>
                     </div>
-                    <?php if ($inProgressCount == 0): ?>
+                    <?php if ($inProgressCount > 0): ?>
+                        <div class="flex flex-col gap-3">
+                            <?php foreach ($inProgressTasks as $t): ?>
+                                <?php include 'item_tugas.php'; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
                         <div class="text-center py-8 text-gray-400 text-sm">Tidak ada tugas dalam progress</div>
                     <?php endif; ?>
                 </div>
