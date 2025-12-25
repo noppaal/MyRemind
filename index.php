@@ -483,6 +483,153 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                         </div>
                     </div>
                 </div>
+                
+                <!-- Deadline Tugas Section -->
+                <div class="mt-6 bg-white rounded-2xl p-5 shadow-lg border border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Deadline Tugas</h3>
+                    
+                    <!-- Tabs -->
+                    <div class="flex gap-4 mb-4 border-b border-gray-200">
+                        <button class="deadline-tab pb-2 px-1 font-semibold text-sm transition-all duration-300 border-b-2 border-purple-600 text-purple-600" data-tab="akan-datang">
+                            Akan Datang 
+                            <?php
+                            $upcomingCount = 0;
+                            foreach ($tugasSemua as $t) {
+                                if ($t['StatusTugas'] != 'Selesai') {
+                                    $deadline = new DateTime($t['Deadline']);
+                                    $now = new DateTime();
+                                    if ($deadline >= $now) {
+                                        $upcomingCount++;
+                                    }
+                                }
+                            }
+                            ?>
+                            <span class="text-purple-600">(<?= $upcomingCount ?>)</span>
+                        </button>
+                        <button class="deadline-tab pb-2 px-1 font-semibold text-sm transition-all duration-300 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="terlewat">
+                            Terlewat 
+                            <?php
+                            $overdueCount = 0;
+                            foreach ($tugasSemua as $t) {
+                                if ($t['StatusTugas'] != 'Selesai') {
+                                    $deadline = new DateTime($t['Deadline']);
+                                    $now = new DateTime();
+                                    if ($deadline < $now) {
+                                        $overdueCount++;
+                                    }
+                                }
+                            }
+                            ?>
+                            <span class="text-gray-500">(<?= $overdueCount ?>)</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Akan Datang Content -->
+                    <div id="deadline-akan-datang" class="deadline-content">
+                        <?php
+                        $upcomingTasks = [];
+                        foreach ($tugasSemua as $t) {
+                            if ($t['StatusTugas'] != 'Selesai') {
+                                $deadline = new DateTime($t['Deadline']);
+                                $now = new DateTime();
+                                if ($deadline >= $now) {
+                                    $upcomingTasks[] = $t;
+                                }
+                            }
+                        }
+                        
+                        // Sort by deadline (nearest first)
+                        usort($upcomingTasks, function($a, $b) {
+                            return strtotime($a['Deadline']) - strtotime($b['Deadline']);
+                        });
+                        
+                        if (count($upcomingTasks) > 0):
+                            foreach (array_slice($upcomingTasks, 0, 5) as $t):
+                                $deadline = new DateTime($t['Deadline']);
+                                $now = new DateTime();
+                                $diff = $now->diff($deadline);
+                                $daysLeft = $diff->days;
+                                
+                                // Determine badge
+                                if ($daysLeft == 0) {
+                                    $badge = 'H-0';
+                                    $badgeColor = 'bg-red-500';
+                                } elseif ($daysLeft == 1) {
+                                    $badge = 'H-1';
+                                    $badgeColor = 'bg-orange-500';
+                                } else {
+                                    $badge = 'H-' . $daysLeft;
+                                    $badgeColor = 'bg-blue-500';
+                                }
+                        ?>
+                        <div class="mb-3 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-semibold text-gray-800 text-sm flex-1"><?= htmlspecialchars($t['JudulTugas']) ?></h4>
+                                <span class="<?= $badgeColor ?> text-white text-xs font-bold px-2 py-1 rounded-full ml-2"><?= $badge ?></span>
+                            </div>
+                            <p class="text-xs text-gray-600 mb-2"><?= htmlspecialchars($t['NamaMK']) ?></p>
+                            <div class="flex items-center text-xs text-gray-500">
+                                <i class="far fa-clock mr-1"></i>
+                                <?= date('d M Y, H:i', strtotime($t['Deadline'])) ?>
+                            </div>
+                        </div>
+                        <?php 
+                            endforeach;
+                        else:
+                        ?>
+                        <div class="text-center py-8 text-gray-400 text-sm">
+                            <i class="fas fa-check-circle text-4xl mb-2"></i>
+                            <p>Tidak ada tugas yang akan datang</p>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- Terlewat Content -->
+                    <div id="deadline-terlewat" class="deadline-content hidden">
+                        <?php
+                        $overdueTasks = [];
+                        foreach ($tugasSemua as $t) {
+                            if ($t['StatusTugas'] != 'Selesai') {
+                                $deadline = new DateTime($t['Deadline']);
+                                $now = new DateTime();
+                                if ($deadline < $now) {
+                                    $overdueTasks[] = $t;
+                                }
+                            }
+                        }
+                        
+                        // Sort by deadline (most recent first)
+                        usort($overdueTasks, function($a, $b) {
+                            return strtotime($b['Deadline']) - strtotime($a['Deadline']);
+                        });
+                        
+                        if (count($overdueTasks) > 0):
+                            foreach (array_slice($overdueTasks, 0, 5) as $t):
+                        ?>
+                        <div class="mb-3 p-4 bg-red-50 rounded-lg border border-red-200 hover:shadow-md transition-all duration-300">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-semibold text-gray-800 text-sm flex-1"><?= htmlspecialchars($t['JudulTugas']) ?></h4>
+                                <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full ml-2">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-600 mb-2"><?= htmlspecialchars($t['NamaMK']) ?></p>
+                            <div class="flex items-center text-xs text-red-600">
+                                <i class="far fa-clock mr-1"></i>
+                                <?= date('d M Y, H:i', strtotime($t['Deadline'])) ?>
+                            </div>
+                        </div>
+                        <?php 
+                            endforeach;
+                        else:
+                        ?>
+                        <div class="text-center py-8 text-gray-400 text-sm">
+                            <i class="fas fa-check-circle text-4xl mb-2"></i>
+                            <p>Tidak ada tugas yang terlewat</p>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
 
             <!-- Tugas Tab -->
@@ -881,6 +1028,27 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                     m.classList.add('hidden');
                 });
             }
+        });
+        
+        // Deadline Tab Switching
+        document.querySelectorAll('.deadline-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const targetTab = this.getAttribute('data-tab');
+                
+                // Update tab styles
+                document.querySelectorAll('.deadline-tab').forEach(t => {
+                    t.classList.remove('border-purple-600', 'text-purple-600');
+                    t.classList.add('border-transparent', 'text-gray-500');
+                });
+                this.classList.remove('border-transparent', 'text-gray-500');
+                this.classList.add('border-purple-600', 'text-purple-600');
+                
+                // Show/hide content
+                document.querySelectorAll('.deadline-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                document.getElementById('deadline-' + targetTab).classList.remove('hidden');
+            });
         });
     </script>
 </body>
