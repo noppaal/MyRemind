@@ -14,13 +14,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ical_url'])) {
     
     // Validate URL
     if (!filter_var($ical_url, FILTER_VALIDATE_URL)) {
-        header("Location: index.php?msg=invalid_url");
+        header("Location: index.php?tab=kalender&msg=invalid_url");
         exit;
     }
     
     // Check if URL ends with .ics or contains export_execute.php (LMS Telkom format)
     if (!preg_match('/\.ics(\?|$)/', $ical_url) && !preg_match('/export_execute\.php/', $ical_url)) {
-        header("Location: index.php?msg=invalid_ical_format");
+        header("Location: index.php?tab=kalender&msg=invalid_ical_format");
         exit;
     }
     
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ical_url'])) {
     curl_close($ch);
     
     if ($http_code != 200 || empty($ical_data)) {
-        header("Location: index.php?msg=fetch_failed");
+        header("Location: index.php?tab=kalender&msg=fetch_failed");
         exit;
     }
     
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ical_url'])) {
     $events = parseICalData($ical_data);
     
     if (empty($events)) {
-        header("Location: index.php?msg=no_events");
+        header("Location: index.php?tab=kalender&msg=no_events");
         exit;
     }
     
@@ -96,10 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ical_url'])) {
     mysqli_query($conn, $save_url_query);
     */
     
-    header("Location: index.php?msg=import_success&imported=$imported_count&skipped=$skipped_count");
+    header("Location: index.php?tab=kalender&msg=import_success&imported=$imported_count&skipped=$skipped_count");
     exit;
 } else {
-    header("Location: index.php");
+    header("Location: index.php?tab=kalender");
     exit;
 }
 

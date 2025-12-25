@@ -669,11 +669,36 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                     ?>
                     <?php if ($countJadwal > 0): ?>
                         <div class="space-y-3">
-                            <?php foreach ($jadwalHariIni as $j): ?>
-                            <div class="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 hover:shadow-md transition-all duration-300">
+                            <?php foreach ($jadwalHariIni as $j): 
+                                // Calculate time until class starts
+                                $now = new DateTime();
+                                $jamMulai = new DateTime(date('Y-m-d') . ' ' . $j['JamMulai']);
+                                $diff = $now->diff($jamMulai);
+                                $minutesUntil = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i;
+                                
+                                // Check if class is starting in 30 minutes or less (and hasn't started yet)
+                                $isStartingSoon = ($minutesUntil <= 30 && $minutesUntil > 0 && $diff->invert == 0);
+                                
+                                // Check if class is currently ongoing
+                                $jamSelesai = new DateTime(date('Y-m-d') . ' ' . $j['JamSelesai']);
+                                $isOngoing = ($now >= $jamMulai && $now <= $jamSelesai);
+                            ?>
+                            <div class="p-4 bg-gradient-to-r <?= $isStartingSoon ? 'from-orange-50 to-red-50 border-orange-300 shadow-orange-100 shadow-lg' : ($isOngoing ? 'from-green-50 to-emerald-50 border-green-300' : 'from-blue-50 to-purple-50 border-blue-200') ?> rounded-lg border hover:shadow-md transition-all duration-300 relative">
+                                <?php if ($isStartingSoon): ?>
+                                <!-- H-30 Warning Badge -->
+                                <div class="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-pulse z-10">
+                                    <i class="fas fa-bell mr-1"></i><?= $minutesUntil ?> menit lagi
+                                </div>
+                                <?php elseif ($isOngoing): ?>
+                                <!-- Ongoing Badge -->
+                                <div class="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                                    <i class="fas fa-circle mr-1 animate-pulse"></i>Sedang Berlangsung
+                                </div>
+                                <?php endif; ?>
+                                
                                 <div class="flex items-start gap-3">
                                     <div class="flex-shrink-0 text-center">
-                                        <div class="bg-blue-500 text-white rounded-lg px-3 py-2">
+                                        <div class="<?= $isStartingSoon ? 'bg-orange-500' : ($isOngoing ? 'bg-green-500' : 'bg-blue-500') ?> text-white rounded-lg px-3 py-2">
                                             <div class="text-xs font-semibold"><?= date('H:i', strtotime($j['JamMulai'])) ?></div>
                                             <div class="text-[10px]">-</div>
                                             <div class="text-xs font-semibold"><?= date('H:i', strtotime($j['JamSelesai'])) ?></div>
@@ -1149,6 +1174,20 @@ $bulanSekarang = $namaBulan[(int)$bulanIni];
                 const tabName = this.getAttribute('data-tab');
                 document.getElementById('tab-' + tabName).classList.remove('hidden');
             });
+        });
+        
+        // Auto-switch to tab from URL parameter on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get('tab');
+            
+            if (tabParam) {
+                // Find and click the tab button
+                const tabButton = document.querySelector(`.nav-tab[data-tab="${tabParam}"]`);
+                if (tabButton) {
+                    tabButton.click();
+                }
+            }
         });
 
         // Modal Functions

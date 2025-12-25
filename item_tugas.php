@@ -2,9 +2,13 @@
 // --- Helper Code untuk Menampilkan 1 Baris Tugas ---
 $deadlineDate = new DateTime($t['Deadline']);
 $now = new DateTime();
+$tomorrow = new DateTime('tomorrow');
 $isOverdue = $now > $deadlineDate;
 $diff = $now->diff($deadlineDate);
 $daysLeft = $diff->days;
+
+// Cek apakah deadline besok (H-1)
+$isTomorrow = ($deadlineDate->format('Y-m-d') === $tomorrow->format('Y-m-d'));
 
 // Cek Status Selesai
 $isDone = ($t['StatusTugas'] == 'Selesai');
@@ -13,7 +17,14 @@ $namaMK = empty($t['NamaMK']) ? 'Tugas Umum' : $t['NamaMK'];
 $deskripsi = empty($t['Deskripsi']) ? '' : $t['Deskripsi'];
 ?>
 
-<div class="bg-white rounded-2xl p-4 border border-gray-200 hover:shadow-md transition-all duration-300 relative">
+<div class="bg-white rounded-2xl p-4 border <?= $isTomorrow && !$isDone ? 'border-orange-300 shadow-orange-100 shadow-lg' : 'border-gray-200' ?> hover:shadow-md transition-all duration-300 relative">
+    <?php if ($isTomorrow && !$isDone): ?>
+    <!-- H-1 Warning Badge -->
+    <div class="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-pulse">
+        <i class="fas fa-exclamation-triangle mr-1"></i>H-1
+    </div>
+    <?php endif; ?>
+    
     <div class="flex justify-between items-start mb-2">
         <h4 class="font-semibold text-gray-800 text-base flex-1 pr-2"><?= htmlspecialchars($t['JudulTugas']) ?></h4>
         
@@ -55,11 +66,15 @@ $deskripsi = empty($t['Deskripsi']) ? '' : $t['Deskripsi'];
     
     <div class="text-gray-500 text-sm">
         <?php if($isDone): ?>
-            <span class="text-green-600">Selesai</span>
+            <span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Selesai</span>
         <?php elseif($isOverdue): ?>
-            <span class="text-red-600 font-medium">Deadline: <?= date('d/m/Y', strtotime($t['Deadline'])) ?></span>
+            <span class="text-red-600 font-medium"><i class="fas fa-exclamation-circle mr-1"></i>Deadline: <?= date('d/m/Y', strtotime($t['Deadline'])) ?></span>
+        <?php elseif($isTomorrow): ?>
+            <span class="text-orange-600 font-semibold">
+                <i class="fas fa-clock mr-1"></i>Deadline BESOK: <?= date('d/m/Y H:i', strtotime($t['Deadline'])) ?>
+            </span>
         <?php else: ?>
-            <span>Deadline: <?= date('d/m/Y', strtotime($t['Deadline'])) ?></span>
+            <span><i class="fas fa-calendar mr-1"></i>Deadline: <?= date('d/m/Y', strtotime($t['Deadline'])) ?></span>
         <?php endif; ?>
     </div>
 </div>

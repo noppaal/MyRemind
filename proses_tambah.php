@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                   VALUES ('$kodeMK', '$nim', '$hari', '$jamMulai', '$jamSelesai', '$ruangan')";
         
         if(mysqli_query($conn, $query)) {
-            header("Location: index.php?msg=jadwal_sukses");
+            header("Location: index.php?tab=kalender&msg=jadwal_sukses");
         } else {
             echo "<h3>Gagal Menambah Jadwal</h3><p>Error: " . mysqli_error($conn) . "</p><a href='index.php'>Kembali</a>";
         }
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $query = "INSERT INTO tugas (KodeTugas, NIM, KodeMK, JudulTugas, Deskripsi, Deadline, JenisTugas, StatusTugas)
                   VALUES ('$kodeTugas', '$nim', $kodeMKValue, '$judul', '$desc', '$deadline', 'Individu', 'Aktif')";
         
-        if(mysqli_query($conn, $query)) header("Location: index.php?msg=tugas_sukses");
+        if(mysqli_query($conn, $query)) header("Location: index.php?tab=tugas&msg=tugas_sukses");
         else echo "Error: " . mysqli_error($conn);
     }
 }

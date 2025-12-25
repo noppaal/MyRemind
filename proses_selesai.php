@@ -11,11 +11,11 @@ if (isset($_GET['id']) && isset($_SESSION['nim'])) {
     $query = "UPDATE tugas SET StatusTugas = 'Selesai' WHERE KodeTugas = '$id_tugas' AND NIM = '$nim'";
 
     if (mysqli_query($conn, $query)) {
-        header("Location: index.php?msg=selesai_sukses");
+        header("Location: index.php?tab=tugas&msg=selesai_sukses");
     } else {
         echo "Error: " . mysqli_error($conn);
     }
 } else {
-    header("Location: index.php");
+    header("Location: index.php?tab=tugas");
 }
 ?>

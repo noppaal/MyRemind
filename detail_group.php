@@ -212,6 +212,11 @@ while ($row = mysqli_fetch_assoc($eventsResult)) {
                         <div class="flex-1">
                             <div class="font-medium text-gray-800 text-sm"><?= htmlspecialchars($member['Nama']) ?></div>
                             <div class="text-xs text-gray-500"><?= htmlspecialchars($member['NIM']) ?></div>
+                            <?php if (!empty($member['Email'])): ?>
+                            <div class="text-xs text-gray-400 mt-0.5">
+                                <i class="fas fa-envelope mr-1"></i><?= htmlspecialchars($member['Email']) ?>
+                            </div>
+                            <?php endif; ?>
                         </div>
                         <div class="flex items-center gap-2">
                             <?php

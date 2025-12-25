@@ -55,12 +55,12 @@ try {
     // Commit transaction
     mysqli_commit($conn);
     
-    // Redirect to group detail
-    header("Location: index.php?tab=grup&group=$kodeGrup&msg=grup_created");
+    // Redirect to group detail page
+    header("Location: detail_group.php?kode=$kodeGrup&msg=grup_created");
     
 } catch (Exception $e) {
     // Rollback on error
     mysqli_rollback($conn);
-    header("Location: index.php?msg=grup_create_failed");
+    header("Location: index.php?tab=grup&msg=grup_create_failed");
 }
 ?>

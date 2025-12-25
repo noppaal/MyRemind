@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                   WHERE KodeJadwal = '$id_jadwal' AND NIM = '$nim'";
         
         if(mysqli_query($conn, $query)) {
-            header("Location: index.php?msg=edit_sukses");
+            header("Location: index.php?tab=kalender&msg=edit_sukses");
         } else {
             echo "Gagal edit: " . mysqli_error($conn);
         }
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                   WHERE KodeTugas = '$id_tugas' AND NIM = '$nim'";
         
         if(mysqli_query($conn, $query)) {
-            header("Location: index.php?msg=edit_sukses");
+            header("Location: index.php?tab=tugas&msg=edit_sukses");
         } else {
             echo "Gagal edit: " . mysqli_error($conn);
         }

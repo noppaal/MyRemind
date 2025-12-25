@@ -13,7 +13,7 @@ if (isset($_SESSION['nim']) && isset($_GET['id']) && isset($_GET['type'])) {
         $query = "DELETE FROM tugas WHERE KodeTugas = '$id' AND NIM = '$nim'";
         
         if (mysqli_query($conn, $query)) {
-            header("Location: index.php?msg=hapus_sukses");
+            header("Location: index.php?tab=tugas&msg=hapus_sukses");
         } else {
             echo "Gagal menghapus tugas: " . mysqli_error($conn);
         }
@@ -23,13 +23,13 @@ if (isset($_SESSION['nim']) && isset($_GET['id']) && isset($_GET['type'])) {
         $query = "DELETE FROM jadwalkuliah WHERE KodeJadwal = '$id' AND NIM = '$nim'";
         
         if (mysqli_query($conn, $query)) {
-            header("Location: index.php?msg=hapus_sukses");
+            header("Location: index.php?tab=kalender&msg=hapus_sukses");
         } else {
             echo "Gagal menghapus jadwal: " . mysqli_error($conn);
         }
     }
 } else {
     // Jika akses langsung tanpa parameter
-    header("Location: index.php");
+    header("Location: index.php?tab=kalender");
 }
 ?>

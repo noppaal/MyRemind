@@ -12,21 +12,21 @@ if (isset($_GET['id']) && isset($_SESSION['nim'])) {
     if (mysqli_query($conn, $query)) {
         // Cek apakah ada row yang ter-update
         if (mysqli_affected_rows($conn) > 0) {
-            header("Location: index.php?msg=progress_sukses");
+            header("Location: index.php?tab=tugas&msg=progress_sukses");
         } else {
-            header("Location: index.php?msg=progress_no_change");
+            header("Location: index.php?tab=tugas&msg=progress_no_change");
         }
     } else {
         // Jika error, kemungkinan migration belum dijalankan
         $error = mysqli_error($conn);
         if (strpos($error, 'Data truncated') !== false || strpos($error, 'StatusTugas') !== false) {
-            header("Location: index.php?msg=migration_required");
+            header("Location: index.php?tab=tugas&msg=migration_required");
         } else {
-            header("Location: index.php?msg=progress_error");
+            header("Location: index.php?tab=tugas&msg=progress_error");
         }
     }
 } else {
-    header("Location: index.php");
+    header("Location: index.php?tab=tugas");
 }
 ?>
 
