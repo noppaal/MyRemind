@@ -160,13 +160,13 @@ function addTask($data) {
     $judul = mysqli_real_escape_string($conn, $data['judul']);
     $deskripsi = mysqli_real_escape_string($conn, $data['deskripsi'] ?? '');
     $deadline = mysqli_real_escape_string($conn, $data['deadline']);
-    $kodeMK = isset($data['kode_mk']) ? mysqli_real_escape_string($conn, $data['kode_mk']) : null;
-    $kodeTugas = "MANUAL-" . time();
     
-    $kodeMKValue = $kodeMK ? "'$kodeMK'" : "NULL";
+    // Generate unique task code
+    $kodeTugas = "TSK-" . strtoupper(substr(md5(uniqid()), 0, 8));
     
-    $query = "INSERT INTO tugas (KodeTugas, NIM, KodeMK, JudulTugas, Deskripsi, Deadline, JenisTugas, StatusTugas)
-              VALUES ('$kodeTugas', '$nim', $kodeMKValue, '$judul', '$deskripsi', '$deadline', 'Individu', 'Aktif')";
+    // Insert task with KodeMK as 'GENERAL' (for manual tasks)
+    $query = "INSERT INTO tugas (KodeTugas, NIM, JudulTugas, Deskripsi, Deadline, StatusTugas, KodeMK) 
+              VALUES ('$kodeTugas', '$nim', '$judul', '$deskripsi', '$deadline', 'Aktif', 'GENERAL')";
     
     $result = mysqli_query($conn, $query);
     closeConnection($conn);
@@ -189,7 +189,7 @@ function updateTask($kodeTugas, $data) {
     $result = mysqli_query($conn, $query);
     closeConnection($conn);
     
-    return $result;
+    return ['success' => $result ? true : false];
 }
 
 function deleteTask($kodeTugas) {
@@ -201,7 +201,7 @@ function deleteTask($kodeTugas) {
     $result = mysqli_query($conn, $query);
     closeConnection($conn);
     
-    return $result;
+    return ['success' => $result ? true : false];
 }
 
 function markAsCompleted($kodeTugas) {
@@ -248,6 +248,20 @@ function getOrCreateMatakuliah($namaMK) {
     mysqli_query($conn, $queryInsert);
     
     closeConnection($conn);
-    return $kodeMK;
+    return true;
+}
+
+/**
+ * Mark task as completed (alias for tests)
+ */
+function markCompleted($kodeTugas) {
+    $conn = getConnection();
+    $kodeTugas = mysqli_real_escape_string($conn, $kodeTugas);
+    
+    $query = "UPDATE tugas SET StatusTugas = 'Selesai' WHERE KodeTugas = '$kodeTugas'";
+    $result = mysqli_query($conn, $query);
+    
+    closeConnection($conn);
+    return ['success' => $result ? true : false];
 }
 ?>

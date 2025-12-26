@@ -1,0 +1,100 @@
+-- MyRemind Test Database Schema
+-- Create this database for unit testing
+
+CREATE DATABASE IF NOT EXISTS db_myremind_test;
+USE db_myremind_test;
+
+-- Table: mahasiswa
+CREATE TABLE IF NOT EXISTS mahasiswa (
+    NIM VARCHAR(20) PRIMARY KEY,
+    Nama VARCHAR(100) NOT NULL,
+    Email VARCHAR(100) UNIQUE NOT NULL,
+    Password VARCHAR(255) NOT NULL,
+    Jurusan VARCHAR(100) DEFAULT 'Teknik Informatika',
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: tugas
+CREATE TABLE IF NOT EXISTS tugas (
+    KodeTugas VARCHAR(50) PRIMARY KEY,
+    NIM VARCHAR(20) NOT NULL,
+    JudulTugas VARCHAR(200) NOT NULL,
+    Deskripsi TEXT,
+    Deadline DATETIME NOT NULL,
+    Kategori VARCHAR(50) DEFAULT 'Tugas',
+    StatusTugas ENUM('Aktif','Selesai','Expired') DEFAULT 'Aktif',
+    KodeMK VARCHAR(20) NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (NIM) REFERENCES mahasiswa(NIM) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: grup
+CREATE TABLE IF NOT EXISTS grup (
+    KodeGrup VARCHAR(50) PRIMARY KEY,
+    NamaGrup VARCHAR(100) NOT NULL,
+    Deskripsi TEXT,
+    CreatedBy VARCHAR(20) NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (CreatedBy) REFERENCES mahasiswa(NIM) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: grup_anggota
+CREATE TABLE IF NOT EXISTS grup_anggota (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    KodeGrup VARCHAR(50) NOT NULL,
+    NIM VARCHAR(20) NOT NULL,
+    Role ENUM('owner', 'admin', 'member') DEFAULT 'member',
+    JoinedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (KodeGrup) REFERENCES grup(KodeGrup) ON DELETE CASCADE,
+    FOREIGN KEY (NIM) REFERENCES mahasiswa(NIM) ON DELETE CASCADE,
+    UNIQUE KEY unique_member (KodeGrup, NIM)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: grup_jadwal
+CREATE TABLE IF NOT EXISTS grup_jadwal (
+    KodeJadwal VARCHAR(50) PRIMARY KEY,
+    KodeGrup VARCHAR(50) NOT NULL,
+    JudulKegiatan VARCHAR(200) NOT NULL,
+    Deskripsi TEXT,
+    TanggalMulai DATETIME NOT NULL,
+    TanggalSelesai DATETIME NOT NULL,
+    Lokasi VARCHAR(200),
+    CreatedBy VARCHAR(20) NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (KodeGrup) REFERENCES grup(KodeGrup) ON DELETE CASCADE,
+    FOREIGN KEY (CreatedBy) REFERENCES mahasiswa(NIM) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: jadwalkuliah
+CREATE TABLE IF NOT EXISTS jadwalkuliah (
+    KodeJadwal VARCHAR(50) PRIMARY KEY,
+    NIM VARCHAR(20) NOT NULL,
+    KodeMK VARCHAR(20),
+    Hari VARCHAR(20) NOT NULL,
+    JamMulai TIME NOT NULL,
+    JamSelesai TIME NOT NULL,
+    Ruangan VARCHAR(50),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (NIM) REFERENCES mahasiswa(NIM) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: matakuliah (optional, for schedule references)
+CREATE TABLE IF NOT EXISTS matakuliah (
+    KodeMK VARCHAR(20) PRIMARY KEY,
+    NamaMK VARCHAR(100) NOT NULL,
+    SKS INT DEFAULT 3,
+    KodeDosen VARCHAR(20)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Insert default matakuliah for general tasks
+INSERT INTO matakuliah (KodeMK, NamaMK, SKS) VALUES ('GENERAL', 'Tugas LMS (Umum)', 0)
+ON DUPLICATE KEY UPDATE NamaMK = VALUES(NamaMK);
+
+-- Table: dosen (optional, for schedule references)
+CREATE TABLE IF NOT EXISTS dosen (
+    KodeDosen VARCHAR(20) PRIMARY KEY,
+    NamaDosen VARCHAR(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -26,9 +26,11 @@ function handleLogin() {
     }
     
     // Validate login
-    $user = validateLogin($email, $password);
+    $result = validateLogin($email, $password);
     
-    if ($user) {
+    if ($result['success']) {
+        $user = $result['user'];
+        
         // Regenerate session ID to prevent session fixation
         session_regenerate_id(true);
         
@@ -43,7 +45,7 @@ function handleLogin() {
         header("Location: index.php");
         exit;
     } else {
-        return 'Email atau password salah!';
+        return $result['message'];
     }
 }
 

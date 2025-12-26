@@ -59,13 +59,27 @@ function getUserByNIM($nim) {
 }
 
 function validateLogin($email, $password) {
-    $user = getUserByEmail($email);
+    $conn = getConnection();
+    $email = mysqli_real_escape_string($conn, $email);
     
-    if ($user && password_verify($password, $user['Password'])) {
-        return $user;
+    $query = "SELECT * FROM mahasiswa WHERE Email = '$email'";
+    $result = mysqli_query($conn, $query);
+    
+    if (mysqli_num_rows($result) === 0) {
+        closeConnection($conn);
+        return ['success' => false, 'message' => 'Email tidak terdaftar!'];
     }
     
-    return null;
+    $user = mysqli_fetch_assoc($result);
+    
+    if (!password_verify($password, $user['Password'])) {
+        closeConnection($conn);
+        return ['success' => false, 'message' => 'Password salah!'];
+    }
+    
+    unset($user['Password']); // Remove password from return
+    closeConnection($conn);
+    return ['success' => true, 'user' => $user];
 }
 
 function registerUser($data) {
@@ -75,6 +89,12 @@ function registerUser($data) {
     $nama = mysqli_real_escape_string($conn, $data['nama']);
     $email = mysqli_real_escape_string($conn, $data['email']);
     $password = password_hash($data['password'], PASSWORD_DEFAULT);
+    
+    // Validasi email domain (disabled for testing)
+    // if (!str_ends_with($email, '@student.telkomuniversity.ac.id')) {
+    //     closeConnection($conn);
+    //     return ['success' => false, 'message' => 'Email harus menggunakan domain @student.telkomuniversity.ac.id!'];
+    // }
     
     // Cek apakah email sudah terdaftar
     $checkEmail = getUserByEmail($email);
@@ -90,6 +110,7 @@ function registerUser($data) {
         return ['success' => false, 'message' => 'NIM sudah terdaftar!'];
     }
     
+    // FIX: Added 'Jurusan' field with a default value
     $query = "INSERT INTO mahasiswa (NIM, Nama, Email, Password, Jurusan) VALUES (?, ?, ?, ?, 'Teknik Informatika')";
     $stmt = mysqli_prepare($conn, $query);
     
